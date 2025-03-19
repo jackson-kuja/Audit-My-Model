@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { z } from 'zod';
 import auditService from '../services/auditService';
-import { Audit, mapStatusForDisplay } from '../types/index';
+import { Audit, mapStatusForDisplay, Task } from '../types/index';
 
 // Shadcn UI Components
 import { Button } from '../components/ui/button';
@@ -11,10 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '../components/ui/badge';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { DataTable } from '../components/dashboard/data-table';
-import { columns } from '../components/dashboard/columns';
+import { DataTable } from "../components/dashboard/data-table";
+import { columns } from "../components/dashboard/columns";
+import { formatDate } from '../utils/dateUtils';
 
-// Schema definition for Task type used by DataTable
+// Schema validation for Task type
 const taskSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -23,17 +24,21 @@ const taskSchema = z.object({
   priority: z.string(),
 });
 
-export type Task = z.infer<typeof taskSchema>;
-
 // Function to convert Audits to Tasks format for the data table
 const convertAuditsToTasks = (audits: Audit[]): Task[] => {
-  return audits.map(audit => ({
-    id: audit.id,
-    title: audit.name || 'Unnamed Audit',
-    status: mapStatusForDisplay(audit.status).toLowerCase(),
-    label: audit.audit_type || 'model',
-    priority: getPriorityFromScore(audit.risk_score || audit.score || 0),
-  }));
+  return audits.map(audit => {
+    const label = audit.model_type === 'excel' ? 'model' :
+                  audit.model_type === 'word' ? 'document' : 
+                  audit.model_type === 'powerpoint' ? 'presentation' : 'data';
+    
+    return {
+      id: audit.id,
+      title: audit.name || `Audit ${audit.id}`,
+      status: mapStatusForDisplay(audit.status).toLowerCase(),
+      label: audit.audit_type || label,
+      priority: getPriorityFromScore(audit.risk_score || audit.score || 0),
+    };
+  });
 };
 
 // Helper function to determine priority based on risk score
@@ -43,13 +48,67 @@ const getPriorityFromScore = (score: number): string => {
   return 'low';
 };
 
+// Get custom status badge colors
+const getStatusColor = (status: string): string => {
+  switch (status?.toLowerCase()) {
+    case 'completed':
+      return 'bg-teal-600 text-white hover:bg-teal-700';
+    case 'pending':
+    case 'todo':
+      return 'bg-teal-400 text-black hover:bg-teal-500';
+    case 'in_progress':
+    case 'processing':
+      return 'bg-teal-500 text-white hover:bg-teal-600';
+    case 'failed':
+    case 'error':
+    case 'cancelled':
+    case 'canceled':
+      return 'bg-teal-800 text-white hover:bg-teal-900';
+    default:
+      return 'bg-teal-300 text-black hover:bg-teal-400';
+  }
+};
+
+// Get custom priority badge colors
+const getPriorityColor = (priority: string): string => {
+  switch (priority?.toLowerCase()) {
+    case 'high':
+      return 'bg-violet-700 text-white hover:bg-violet-800';
+    case 'medium':
+      return 'bg-violet-500 text-white hover:bg-violet-600';
+    case 'low':
+      return 'bg-violet-300 text-black hover:bg-violet-400';
+    default:
+      return 'bg-violet-200 text-black hover:bg-violet-300';
+  }
+};
+
+// Helper function to get color for label badge
+const getLabelColor = (label: string): string => {
+  switch (label.toLowerCase()) {
+    case 'model':
+      return '#8b5cf6'; // Violet-500
+    case 'document':
+      return '#3b82f6'; // Blue-500
+    case 'presentation':
+      return '#f97316'; // Orange-500
+    case 'data':
+      return '#10b981'; // Emerald-500
+    case 'security':
+      return '#ef4444'; // Red-500
+    case 'performance':
+      return '#8b5cf6'; // Violet-500
+    default:
+      return '#6b7280'; // Gray-500
+  }
+};
+
 // Get status badge variant similar to AuditDetail
 const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status?.toLowerCase()) {
     case 'pending':
       return "secondary";
-    case 'in progress':
-    case 'processing':
+    case 'in_progress':
       return "default";
     case 'completed':
       return "default";
@@ -57,7 +116,6 @@ const getStatusVariant = (status: string): "default" | "secondary" | "destructiv
     case 'failed':
       return "destructive";
     case 'cancelled':
-    case 'canceled':
       return "outline";
     default:
       return "outline";
@@ -254,16 +312,19 @@ const Dashboard: React.FC = () => {
                         <div>
                           <h3 className="font-medium">{audit.title}</h3>
                           <div className="flex gap-2 mt-1">
-                            <Badge variant={getStatusVariant(audit.status)}>
-                              {audit.status}
+                            <Badge className={getStatusColor(audit.status)}>
+                              {audit.status.toLowerCase()}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {audit.label}
-                            </span>
+                            <Badge 
+                              style={{ backgroundColor: getLabelColor(audit.label), color: '#fff' }}
+                              className="text-xs font-semibold"
+                            >
+                              {audit.label.toLowerCase()}
+                            </Badge>
                           </div>
                         </div>
-                        <Badge variant={audit.priority === 'high' ? 'destructive' : (audit.priority === 'medium' ? 'secondary' : 'default')}>
-                          {audit.priority} risk
+                        <Badge className={getPriorityColor(audit.priority)}>
+                          {audit.priority.toLowerCase()} risk
                         </Badge>
                       </CardContent>
                     </Card>

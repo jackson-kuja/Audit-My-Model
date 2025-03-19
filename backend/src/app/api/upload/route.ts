@@ -112,32 +112,51 @@ export async function POST(request: Request) {
       throw new ApiError(updateError.message, 400);
     }
     
+    // Determine file type based on extension or mime type
+    const fileType = getFileType(file);
+    console.log(`📤 [upload] Detected file type: ${fileType}`);
+    
     // Directly trigger analysis (synchronously)
     try {
-      console.log(`📤 [upload] Directly calling Excel analysis for file ${fileName}`);
+      console.log(`📤 [upload] Directly calling ${fileType} analysis for file ${fileName}`);
       
-      try {
-        // Create a direct import for the analyze handler
+      // Call the appropriate handler based on file type
+      let analysisResult;
+      
+      if (fileType === 'excel') {
         const { handleExcelAnalysis } = await import('../excel/analyze/handler');
-        
-        // Call the handler directly with the necessary parameters
-        const analysisResult = await handleExcelAnalysis({
+        analysisResult = await handleExcelAnalysis({
           file_path: fileName,
           model: 'o3-mini',
           use_tools: true,
           auth_token: authHeader?.replace('Bearer ', '') || '',
           user_id: audit.user_id
         });
-        
-        console.log(`📤 [upload] Direct analysis call succeeded with result:`, JSON.stringify(analysisResult).substring(0, 200) + '...');
-      } catch (analyzeError) {
-        console.error(`📤 [upload] Error in direct analysis call:`, analyzeError);
-        
-        // Don't mark as failed here - let the analyze endpoint run asynchronously
-        console.log("📤 [upload] Analysis will be retried asynchronously");
+      } else if (fileType === 'word') {
+        const { handleWordAnalysis } = await import('../word/analyze/handler');
+        analysisResult = await handleWordAnalysis({
+          file_path: fileName,
+          model: 'o3-mini',
+          use_tools: true,
+          auth_token: authHeader?.replace('Bearer ', '') || '',
+          user_id: audit.user_id
+        });
+      } else if (fileType === 'powerpoint') {
+        const { handlePowerPointAnalysis } = await import('../powerpoint/analyze/handler');
+        analysisResult = await handlePowerPointAnalysis({
+          file_path: fileName,
+          model: 'o3-mini',
+          use_tools: true,
+          auth_token: authHeader?.replace('Bearer ', '') || '',
+          user_id: audit.user_id
+        });
+      } else {
+        throw new Error(`Unsupported file type: ${fileType}`);
       }
+      
+      console.log(`📤 [upload] Direct analysis call succeeded with result:`, JSON.stringify(analysisResult).substring(0, 200) + '...');
     } catch (analyzeError) {
-      console.error(`📤 [upload] Error calling analysis API:`, analyzeError);
+      console.error(`📤 [upload] Error in direct analysis call:`, analyzeError);
       
       // Don't mark as failed here - let the analyze endpoint run asynchronously
       console.log("📤 [upload] Analysis will be retried asynchronously");
@@ -167,6 +186,55 @@ export async function POST(request: Request) {
   } catch (error) {
     return handleError(error);
   }
+}
+
+/**
+ * Determine the type of file based on extension or mime type
+ * @param file The file to check
+ * @returns The file type ('excel', 'word', 'powerpoint', or 'unknown')
+ */
+function getFileType(file: File): 'excel' | 'word' | 'powerpoint' | 'unknown' {
+  const fileName = file.name.toLowerCase();
+  const mimeType = file.type.toLowerCase();
+  
+  // Check for Excel files
+  if (
+    fileName.endsWith('.xlsx') || 
+    fileName.endsWith('.xls') || 
+    fileName.endsWith('.xlsm') ||
+    mimeType.includes('spreadsheetml') ||
+    mimeType.includes('excel') ||
+    mimeType.includes('ms-excel')
+  ) {
+    return 'excel';
+  }
+  
+  // Check for Word files
+  if (
+    fileName.endsWith('.docx') || 
+    fileName.endsWith('.doc') || 
+    fileName.endsWith('.docm') ||
+    mimeType.includes('wordprocessingml') ||
+    mimeType.includes('msword') ||
+    mimeType.includes('word')
+  ) {
+    return 'word';
+  }
+  
+  // Check for PowerPoint files
+  if (
+    fileName.endsWith('.pptx') || 
+    fileName.endsWith('.ppt') || 
+    fileName.endsWith('.pptm') ||
+    mimeType.includes('presentationml') ||
+    mimeType.includes('powerpoint') ||
+    mimeType.includes('ms-powerpoint')
+  ) {
+    return 'powerpoint';
+  }
+  
+  // Default to unknown
+  return 'unknown';
 }
 
 // Handle OPTIONS request for CORS

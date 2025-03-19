@@ -1,11 +1,15 @@
+import React from 'react';
 import { ComponentProps } from "react";
 import { formatDistanceToNow } from "date-fns";
-
-import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
-import { ScrollArea } from "../ui/scroll-area";
+import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
 import { Separator } from "../ui/separator";
 import { MailItem } from "./mail-dashboard";
+import { useMail } from "../../hooks/useMail";
+import { getLabelColor } from '../../utils/colorTheme';
+import { cn } from "../../lib/utils";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface MailListProps {
   items: MailItem[];
@@ -60,8 +64,14 @@ export function MailList({ items, selectedId, onSelect }: MailListProps) {
               {item.labels.length ? (
                 <div className="flex items-center gap-2">
                   {item.labels.map((label) => (
-                    <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
-                      {label}
+                    <Badge 
+                      key={label} 
+                      className="text-white"
+                      style={{
+                        backgroundColor: getLabelColor(label)
+                      }}
+                    >
+                      {label.toLowerCase()}
                     </Badge>
                   ))}
                 </div>

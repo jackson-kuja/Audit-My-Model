@@ -8,11 +8,14 @@ import {
   CircularProgress,
   Alert,
   Paper,
-  Chip
+  Chip,
+  Avatar
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { formatDate } from '../utils/dateUtils';
 import { Audit, AuditResult } from '../types/index';
+import { getRiskScoreHexColor } from '../utils/colorTheme';
 
 interface AuditSidePanelProps {
   audit: Audit | null;
@@ -45,11 +48,19 @@ const AuditSidePanel: React.FC<AuditSidePanelProps> = ({ audit, open, onClose, l
                     {finding.description}
                   </Typography>
                   <Chip
-                    label={finding.severity.toUpperCase()}
-                    color={
-                      finding.severity === 'high' ? 'error' : 
-                      finding.severity === 'medium' ? 'warning' : 'success'
-                    }
+                    label={finding.severity.toLowerCase()}
+                    sx={{
+                      backgroundColor: finding.severity === 'high' ? '#e11d48' : // rose-600
+                              finding.severity === 'medium' ? '#fb7185' : // rose-400
+                              '#fecdd3', // rose-200
+                      color: finding.severity === 'high' || finding.severity === 'medium' ? '#fff' : '#000',
+                      fontWeight: 'bold',
+                      '&:hover': {
+                        backgroundColor: finding.severity === 'high' ? '#be123c' : // rose-700
+                              finding.severity === 'medium' ? '#e11d48' : // rose-500
+                              '#fda4af', // rose-300
+                      }
+                    }}
                     size="small"
                   />
                 </Paper>
@@ -79,11 +90,17 @@ const AuditSidePanel: React.FC<AuditSidePanelProps> = ({ audit, open, onClose, l
     }
   };
   
-  // Function to get color based on risk score
-  const getRiskScoreColor = (score: number): string => {
-    if (score >= 80) return '#4caf50'; // Green
-    if (score >= 60) return '#ff9800'; // Orange
-    return '#f44336'; // Red
+  // Render a status message based on the audit status
+  const renderStatusMessage = () => {
+    if (!audit) return null;
+    
+    if (audit.status === 'failed' || audit.status === 'error') {
+      return (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {audit.error_message || "There was an error processing this audit."}
+        </Alert>
+      );
+    }
   };
   
   return (
@@ -127,7 +144,7 @@ const AuditSidePanel: React.FC<AuditSidePanelProps> = ({ audit, open, onClose, l
             color: audit?.status ? `${audit.status}.dark` : 'info.dark',
           }}>
             <Typography variant="subtitle1" fontWeight="medium">
-              Status: {audit?.status?.toUpperCase() || 'UNKNOWN'}
+              Status: {audit?.status?.toLowerCase() || 'unknown'}
             </Typography>
           </Box>
           
@@ -140,10 +157,10 @@ const AuditSidePanel: React.FC<AuditSidePanelProps> = ({ audit, open, onClose, l
           
           <Box mt={2}>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Created
+              Uploaded
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {formatDate(audit.created_at)}
+              {formatDate(audit.upload_timestamp || audit.created_at)}
             </Typography>
           </Box>
           
@@ -172,7 +189,7 @@ const AuditSidePanel: React.FC<AuditSidePanelProps> = ({ audit, open, onClose, l
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: getRiskScoreColor(audit.score),
+                  backgroundColor: getRiskScoreHexColor(audit.score),
                   color: 'white',
                   fontSize: '1.5rem',
                   fontWeight: 'bold',
@@ -190,6 +207,8 @@ const AuditSidePanel: React.FC<AuditSidePanelProps> = ({ audit, open, onClose, l
               {renderAuditResults(audit.results)}
             </Box>
           )}
+          
+          {renderStatusMessage()}
         </Box>
       )}
     </Drawer>

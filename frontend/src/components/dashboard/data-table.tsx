@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Task } from '../../pages/Dashboard';
+import { Task } from '../../types/index';
 
 // Shadcn UI components
 import {

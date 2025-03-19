@@ -27,6 +27,7 @@ import {
   AlertCircle, 
   CheckCircle, 
   FileSpreadsheet, 
+  FileText,
   Presentation,
   ArrowRight,
   ArrowLeft,
@@ -65,6 +66,18 @@ const pptPresets = [
   { id: 'slide-density', label: 'Information Density' },
   { id: 'master-slides', label: 'Master Slide Usage' },
   { id: 'narration', label: 'Notes & Narration' },
+];
+
+// Word-specific options
+const wordPresets = [
+  { id: 'document-structure', label: 'Document Structure' },
+  { id: 'formatting-consistency', label: 'Formatting Consistency' },
+  { id: 'readability', label: 'Readability & Clarity' },
+  { id: 'grammar-spelling', label: 'Grammar & Spelling' },
+  { id: 'accessibility', label: 'Accessibility Issues' },
+  { id: 'references', label: 'Citations & References' },
+  { id: 'tables-figures', label: 'Tables & Figures' },
+  { id: 'content-organization', label: 'Content Organization' },
 ];
 
 // Define the step types more precisely
@@ -110,7 +123,7 @@ const Upload: React.FC = () => {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
-  const [fileType, setFileType] = useState<'excel' | 'powerpoint' | ''>('');
+  const [fileType, setFileType] = useState<'excel' | 'powerpoint' | 'word' | ''>('');
   const [currentStep, setCurrentStep] = useState<StepType>('type');
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [customRequirements, setCustomRequirements] = useState('');
@@ -164,14 +177,26 @@ const Upload: React.FC = () => {
 
   // Get the appropriate file extensions based on file type
   const getAcceptedFileTypes = () => {
-    return fileType === 'excel' 
-      ? '.xlsx, .xls, .xlsm, .csv' 
-      : '.ppt, .pptx, .pptm';
+    if (fileType === 'excel') {
+      return '.xlsx, .xls, .xlsm, .csv';
+    } else if (fileType === 'powerpoint') {
+      return '.ppt, .pptx, .pptm';
+    } else if (fileType === 'word') {
+      return '.doc, .docx, .docm';
+    }
+    return '';
   };
   
   // Get the appropriate presets based on file type
   const getPresets = () => {
-    return fileType === 'excel' ? analysisPresets : pptPresets;
+    if (fileType === 'excel') {
+      return analysisPresets;
+    } else if (fileType === 'powerpoint') {
+      return pptPresets;
+    } else if (fileType === 'word') {
+      return wordPresets;
+    }
+    return [];
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -335,7 +360,7 @@ const Upload: React.FC = () => {
     setError(null);
   };
 
-  const handleFileTypeSelect = (type: 'excel' | 'powerpoint') => {
+  const handleFileTypeSelect = (type: 'excel' | 'powerpoint' | 'word') => {
     setFileType(type);
     setCurrentStep('animation-1');
     setError(null);
@@ -693,18 +718,24 @@ const Upload: React.FC = () => {
   const getCardTitle = () => {
     if (currentStep === 'type') return "Select File Type";
     if (currentStep === 'obfuscate') {
-      return fileType === 'excel' ? "Secure Your Excel Model" : "Secure Your PowerPoint Deck";
+      return fileType === 'excel' ? "Secure Your Excel Model" : 
+             fileType === 'powerpoint' ? "Secure Your PowerPoint Deck" :
+             fileType === 'word' ? "Secure Your Word Document" : "";
     }
     if (currentStep === 'upload') {
-      return fileType === 'excel' ? "Upload Your Model" : "Upload Your Deck";
+      return fileType === 'excel' ? "Upload Your Model" : 
+             fileType === 'powerpoint' ? "Upload Your Deck" :
+             fileType === 'word' ? "Upload Your Document" : "";
     }
     if (currentStep === 'analyze') {
-      return fileType === 'excel' ? "Model Analysis Options" : "Deck Analysis Options";
+      return fileType === 'excel' ? "Model Analysis Options" : 
+             fileType === 'powerpoint' ? "Deck Analysis Options" :
+             fileType === 'word' ? "Document Analysis Options" : "";
     }
     if (currentStep === 'confirmation') return "Audit Request Confirmation";
     if (isAnimationStep(currentStep)) return "";
     
-    return "";
+    return "Audit My File";
   };
 
   // Get card description based on current step
@@ -712,19 +743,27 @@ const Upload: React.FC = () => {
     if (currentStep === 'type') return "Choose the type of file you want to audit";
     if (currentStep === 'obfuscate') {
       return fileType === 'excel' 
-        ? "Secure your Excel model before uploading by obfuscating financial data while preserving structure and formulas."
-        : "Secure your PowerPoint content by scrambling text and numbers while maintaining your presentation's visual layout.";
+        ? "Protect your sensitive data before uploading (optional)"
+        : fileType === 'powerpoint'
+        ? "Protect your confidential content before uploading (optional)"
+        : fileType === 'word'
+        ? "Protect your sensitive information before uploading (optional)"
+        : "";
     }
     if (currentStep === 'upload') {
-      return fileType === 'excel' ? "Upload the Excel model you want to analyze" : "Upload the PowerPoint deck you want to analyze";
+      return fileType === 'excel' ? "Upload the Excel model you want to analyze" : 
+             fileType === 'powerpoint' ? "Upload the PowerPoint deck you want to analyze" :
+             fileType === 'word' ? "Upload the Word document you want to analyze" : "";
     }
     if (currentStep === 'analyze') {
-      return fileType === 'excel' ? "Select what aspects you want to analyze in your model" : "Select what aspects you want to analyze in your deck";
+      return fileType === 'excel' ? "Select what aspects you want to analyze in your model" : 
+             fileType === 'powerpoint' ? "Select what aspects you want to analyze in your deck" :
+             fileType === 'word' ? "Select what aspects you want to analyze in your document" : "";
     }
     if (currentStep === 'confirmation') return "Your audit has been successfully submitted";
     if (isAnimationStep(currentStep)) return "";
     
-    return "";
+    return "Auditing in progress...";
   };
 
   return (
@@ -737,6 +776,7 @@ const Upload: React.FC = () => {
             <h1 className="text-3xl font-bold tracking-tight mb-2">
               {fileType === 'excel' ? 'Audit My Model' : 
               fileType === 'powerpoint' ? 'Audit My Deck' : 
+              fileType === 'word' ? 'Audit My Document' :
               'Audit My File'}
             </h1>
             <p className="text-muted-foreground">
@@ -758,6 +798,7 @@ const Upload: React.FC = () => {
             <h1 className="text-3xl font-bold tracking-tight mb-2">
               {fileType === 'excel' ? 'Audit My Model' : 
               fileType === 'powerpoint' ? 'Audit My Deck' : 
+              fileType === 'word' ? 'Audit My Document' :
               'Audit My File'}
             </h1>
             <p className="text-muted-foreground">
@@ -774,7 +815,7 @@ const Upload: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               {currentStep === 'type' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div 
                     className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'excel' ? 'border-primary bg-accent/50' : 'border-input'}`}
                     onClick={() => handleFileTypeSelect('excel')}
@@ -783,6 +824,16 @@ const Upload: React.FC = () => {
                     <h3 className="text-lg font-medium">Excel Spreadsheet</h3>
                     <p className="text-sm text-muted-foreground mt-2">
                       Audit Excel files for formula errors, data issues, and structural problems
+                    </p>
+                  </div>
+                  <div 
+                    className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'word' ? 'border-primary bg-accent/50' : 'border-input'}`}
+                    onClick={() => handleFileTypeSelect('word')}
+                  >
+                    <FileText className="h-16 w-16 mx-auto mb-4 text-blue-600" />
+                    <h3 className="text-lg font-medium">Word Document</h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Review Word documents for structure, clarity, readability, and formatting
                     </p>
                   </div>
                   <div 
@@ -852,6 +903,33 @@ const Upload: React.FC = () => {
                 </div>
               )}
 
+              {currentStep === 'obfuscate' && fileType === 'word' && (
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4 p-4 bg-accent/30 rounded-lg">
+                    <Shield className="h-10 w-10 text-primary flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Protect Your Sensitive Content</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Secure your Word document by obfuscating confidential information while maintaining document structure.
+                      </p>
+                      
+                      <div className="space-y-4 mt-4 p-4 bg-background rounded-lg border">
+                        <h4 className="font-medium">How Obfuscation Works:</h4>
+                        <ul className="list-disc pl-5 space-y-2 text-sm">
+                          <li>Replaces names, identifiers, and sensitive data with generic placeholders</li>
+                          <li>Preserves document structure, formatting, and readability</li>
+                        </ul>
+                        
+                        <Button variant="secondary" onClick={() => window.open('#', '_blank')} className="mt-4 flex items-center gap-2">
+                          <ExternalLink className="h-4 w-4" />
+                          Download Word Obfuscation Macro
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {currentStep === 'upload' && (
                 <div className="space-y-4">
                   <div
@@ -873,6 +951,8 @@ const Upload: React.FC = () => {
                       <h3 className="text-lg font-medium">
                         {file ? file.name : fileType === 'excel' 
                           ? 'Drag & drop your model or click to browse' 
+                          : fileType === 'word'
+                          ? 'Drag & drop your document or click to browse'
                           : 'Drag & drop your deck or click to browse'}
                       </h3>
                       <p className="text-sm text-muted-foreground">

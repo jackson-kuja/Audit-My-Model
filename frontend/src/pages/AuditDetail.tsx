@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/dateUtils';
 import { Audit, AuditResult } from '../types/index';
@@ -10,6 +10,11 @@ import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import {
+  getStatusColor,
+  getRiskScoreColor,
+  getSeverityColor
+} from '../utils/colorTheme';
 
 // Status badge variants
 const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -36,25 +41,6 @@ interface AuditDetailProps {
   error: string | null;
 }
 
-const getRiskScoreColor = (score: number): string => {
-  if (score >= 80) return 'bg-green-500';
-  if (score >= 60) return 'bg-amber-500';
-  return 'bg-red-500';
-};
-
-const getSeverityBadgeVariant = (severity: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (severity.toLowerCase()) {
-    case 'high':
-      return "destructive";
-    case 'medium':
-      return "secondary";
-    case 'low':
-      return "default";
-    default:
-      return "outline";
-  }
-};
-
 const renderAuditResults = (results: AuditResult) => {
   if (!results) return null;
 
@@ -69,8 +55,10 @@ const renderAuditResults = (results: AuditResult) => {
             <p className="text-gray-700">{finding.description}</p>
           </CardContent>
           <CardFooter>
-            <Badge variant={getSeverityBadgeVariant(finding.severity)}>
-              {finding.severity.toUpperCase()}
+            <Badge 
+              className={getSeverityColor(finding.severity)}
+            >
+              {finding.severity.toLowerCase()}
             </Badge>
           </CardFooter>
         </Card>
@@ -180,8 +168,14 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
       {/* Header Section with Back Button */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h1 className={`text-3xl font-bold tracking-tight ${audit.model_type?.toLowerCase() === 'excel' ? 'text-green-600' : 'text-orange-600'}`}>
-            {audit.model_type?.toLowerCase() === 'excel' ? 'Excel Audit Report' : 'PowerPoint Audit Report'}
+          <h1 className={`text-3xl font-bold tracking-tight ${
+            audit.model_type?.toLowerCase() === 'excel' ? 'text-green-600' : 
+            audit.model_type?.toLowerCase() === 'word' ? 'text-blue-600' : 
+            'text-orange-600'
+          }`}>
+            {audit.model_type?.toLowerCase() === 'excel' ? 'Excel Audit Report' : 
+             audit.model_type?.toLowerCase() === 'word' ? 'Document Audit Report' : 
+             'PowerPoint Audit Report'}
           </h1>
         </div>
         <Button 
@@ -194,13 +188,9 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
       
       {/* Status Badge */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <Badge variant={getStatusVariant(audit.status)} className="px-3 py-1 text-sm">
-          {audit?.status?.toUpperCase() || 'UNKNOWN'}
+        <Badge className={`px-3 py-1 text-sm font-bold ${getStatusColor(audit.status)}`}>
+          {audit?.status?.toLowerCase() || 'unknown'}
         </Badge>
-        <div className="text-sm text-muted-foreground">
-          <div>Created: {formatDate(audit?.created_at)}</div>
-          <div>Updated: {formatDate(audit?.updated_at)}</div>
-        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

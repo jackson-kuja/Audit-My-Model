@@ -122,6 +122,9 @@ export interface AuditResult {
   recommendations?: string[];
 }
 
+// Export Task type
+export type { Task } from './task';
+
 // Function to map database status to display-friendly status
 export function mapStatusForDisplay(status: AuditStatus): string {
   switch (status) {

@@ -141,7 +141,12 @@ export function MailDisplay({ mail, onViewDetails }: MailDisplayProps) {
               </div>
               {audit.model_type && (
                 <div className="line-clamp-1 text-xs">
-                  <span className="font-medium">Type:</span> {audit.model_type}
+                  <span className="font-medium">Type:</span> {
+                    audit.model_type.toLowerCase() === 'excel' ? 'Excel Model' : 
+                    audit.model_type.toLowerCase() === 'word' ? 'Word Document' :
+                    audit.model_type.toLowerCase() === 'powerpoint' ? 'PowerPoint Presentation' :
+                    audit.model_type
+                  }
                 </div>
               )}
               {riskScore > 0 && (

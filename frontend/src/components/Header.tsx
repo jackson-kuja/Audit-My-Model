@@ -52,8 +52,6 @@ const Header = () => {
 
   return (
     <Box sx={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
       width: '100%', 
       py: 2,
       position: 'sticky',
@@ -61,16 +59,19 @@ const Header = () => {
       zIndex: 1100,
       backgroundColor: 'transparent'
     }}>
-      <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
+      <Container 
+        maxWidth="xl" 
+        sx={{ 
+          px: { xs: 2, sm: 3 }
+        }}
+      >
         <Paper
           elevation={0}
           sx={{
             borderRadius: 100,
             boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.08)',
             overflow: 'hidden',
-            backgroundColor: '#ffffff',
-            maxWidth: '800px',
-            mx: 'auto'
+            backgroundColor: '#ffffff'
           }}
         >
           <Toolbar disableGutters sx={{ 
@@ -78,7 +79,7 @@ const Header = () => {
             px: { xs: 2, md: 3 },
             justifyContent: 'space-between'
           }}>
-            {/* Logo */}
+            {/* Logo - always visible */}
             <Box 
               component={RouterLink} 
               to="/"
@@ -86,9 +87,20 @@ const Header = () => {
                 display: 'flex', 
                 alignItems: 'center', 
                 textDecoration: 'none',
-                color: 'inherit'
+                color: 'inherit',
+                flexShrink: 0 // Prevent logo from shrinking
               }}
             >
+              {/* Add the logo image */}
+              <img 
+                src="/logo.jpg" 
+                alt="Audit My Model Logo" 
+                style={{ 
+                  height: '24px', 
+                  width: 'auto', 
+                  marginRight: '8px' 
+                }} 
+              />
               <Typography
                 variant="h6"
                 sx={{
@@ -214,83 +226,109 @@ const Header = () => {
               </>
             ) : (
               // Mobile Navigation
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {/* New Audit Button for Mobile */}
-                {user && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate('/upload')}
-                    sx={{
-                      borderRadius: 100,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      px: 1.5,
-                      py: 0.5,
-                      textTransform: 'none',
-                      fontSize: '0.8rem',
-                      backgroundColor: theme.palette.primary.main,
-                      color: '#fff',
-                      fontWeight: 600,
-                      mr: 1.5,
-                      minWidth: 'auto',
-                      '&:hover': {
-                        backgroundColor: theme.palette.primary.dark,
-                      }
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                {/* Logo should appear on mobile too */}
+                <Box
+                  component={RouterLink}
+                  to="/"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    flexShrink: 0 // Prevent logo from shrinking
+                  }}
+                >
+                  <img
+                    src="/logo.jpg"
+                    alt="Audit My Model Logo"
+                    style={{
+                      height: '24px',
+                      width: 'auto',
+                      marginRight: '4px'
                     }}
-                  >
-                    <AddIcon fontSize="small" style={{ marginRight: '4px' }} />
-                    New Audit
-                  </Button>
-                )}
+                  />
+                </Box>
 
-                {/* Direct navigation icons for mobile */}
-                {user ? (
-                  shouldShowDashboardIcon ? (
-                    <Tooltip title="Go to Dashboard">
-                      <IconButton
-                        edge="end"
-                        color="inherit"
-                        aria-label="dashboard"
-                        onClick={() => navigate('/dashboard')}
-                      >
-                        <DashboardIcon />
-                      </IconButton>
-                    </Tooltip>
+                {/* The rest of the mobile menu with New Audit button and navigation icons */}
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  {/* New Audit Button for Mobile */}
+                  {user && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => navigate('/upload')}
+                      sx={{
+                        borderRadius: 100,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        px: 1.5,
+                        py: 0.5,
+                        textTransform: 'none',
+                        fontSize: '0.8rem',
+                        backgroundColor: theme.palette.primary.main,
+                        color: '#fff',
+                        fontWeight: 600,
+                        mr: 1.5,
+                        minWidth: 'auto',
+                        '&:hover': {
+                          backgroundColor: theme.palette.primary.dark,
+                        }
+                      }}
+                    >
+                      <AddIcon fontSize="small" style={{ marginRight: '4px' }} />
+                      New Audit
+                    </Button>
+                  )}
+
+                  {/* Direct navigation icons for mobile */}
+                  {user ? (
+                    shouldShowDashboardIcon ? (
+                      <Tooltip title="Go to Dashboard">
+                        <IconButton
+                          edge="end"
+                          color="inherit"
+                          aria-label="dashboard"
+                          onClick={() => navigate('/dashboard')}
+                        >
+                          <DashboardIcon />
+                        </IconButton>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip title="Go to Profile">
+                        <IconButton
+                          edge="end"
+                          color="inherit"
+                          aria-label="profile"
+                          onClick={() => navigate('/profile')}
+                        >
+                          <AccountCircleIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )
                   ) : (
-                    <Tooltip title="Go to Profile">
-                      <IconButton
-                        edge="end"
-                        color="inherit"
-                        aria-label="profile"
-                        onClick={() => navigate('/profile')}
-                      >
-                        <AccountCircleIcon />
-                      </IconButton>
-                    </Tooltip>
-                  )
-                ) : (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate('/login')}
-                    sx={{
-                      borderRadius: 100,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      px: 1.5,
-                      py: 0.5,
-                      textTransform: 'none',
-                      fontSize: '0.8rem',
-                      backgroundColor: theme.palette.primary.main,
-                      color: '#fff',
-                      fontWeight: 600,
-                      '&:hover': {
-                        backgroundColor: theme.palette.primary.dark,
-                      }
-                    }}
-                  >
-                    Get Started
-                  </Button>
-                )}
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => navigate('/login')}
+                      sx={{
+                        borderRadius: 100,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        px: 1.5,
+                        py: 0.5,
+                        textTransform: 'none',
+                        fontSize: '0.8rem',
+                        backgroundColor: theme.palette.primary.main,
+                        color: '#fff',
+                        fontWeight: 600,
+                        '&:hover': {
+                          backgroundColor: theme.palette.primary.dark,
+                        }
+                      }}
+                    >
+                      Get Started
+                    </Button>
+                  )}
+                </Box>
               </Box>
             )}
           </Toolbar>

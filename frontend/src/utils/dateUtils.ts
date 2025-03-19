@@ -14,7 +14,6 @@ export const formatDate = (dateString: string | number | Date): string => {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short'
+    minute: '2-digit'
   }).format(date);
 }; 

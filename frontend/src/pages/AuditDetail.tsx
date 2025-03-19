@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/dateUtils';
 import { Audit, AuditResult } from '../types/index';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 // Shadcn components
 import { Button } from '../components/ui/button';
@@ -12,28 +13,8 @@ import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
   getStatusColor,
-  getRiskScoreColor,
-  getSeverityColor
+  getPriorityColor
 } from '../utils/colorTheme';
-
-// Status badge variants
-const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (status?.toLowerCase()) {
-    case 'pending':
-      return "secondary";
-    case 'in_progress':
-      return "default";
-    case 'completed':
-      return "default";
-    case 'error':
-    case 'failed':
-      return "destructive";
-    case 'cancelled':
-      return "outline";
-    default:
-      return "outline";
-  }
-};
 
 interface AuditDetailProps {
   audit: Audit | null;
@@ -56,7 +37,7 @@ const renderAuditResults = (results: AuditResult) => {
           </CardContent>
           <CardFooter>
             <Badge 
-              className={getSeverityColor(finding.severity)}
+              className={getPriorityColor(finding.severity)}
             >
               {finding.severity.toLowerCase()}
             </Badge>
@@ -141,6 +122,7 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
           variant="outline" 
           onClick={() => navigate('/dashboard')}
         >
+          <ArrowBackIcon fontSize="small" style={{ marginRight: '4px' }} />
           Back to Dashboard
         </Button>
       </div>
@@ -157,6 +139,7 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
           variant="outline" 
           onClick={() => navigate('/dashboard')}
         >
+          <ArrowBackIcon fontSize="small" style={{ marginRight: '4px' }} />
           Back to Dashboard
         </Button>
       </div>
@@ -168,20 +151,17 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
       {/* Header Section with Back Button */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h1 className={`text-3xl font-bold tracking-tight ${
-            audit.model_type?.toLowerCase() === 'excel' ? 'text-green-600' : 
-            audit.model_type?.toLowerCase() === 'word' ? 'text-blue-600' : 
-            'text-orange-600'
-          }`}>
+          <h1 className="text-3xl font-bold tracking-tight text-black">
             {audit.model_type?.toLowerCase() === 'excel' ? 'Excel Audit Report' : 
-             audit.model_type?.toLowerCase() === 'word' ? 'Document Audit Report' : 
-             'PowerPoint Audit Report'}
+             audit.model_type?.toLowerCase() === 'word' ? 'Word Doc Audit' : 
+             'PowerPoint Deck Audit'}
           </h1>
         </div>
         <Button 
           variant="outline" 
           onClick={() => navigate('/dashboard')}
         >
+          <ArrowBackIcon fontSize="small" style={{ marginRight: '4px' }} />
           Back to Dashboard
         </Button>
       </div>
@@ -201,7 +181,7 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
               <CardDescription>Risk Score</CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center py-6">
-              <div className={`${getRiskScoreColor(audit.score)} w-24 h-24 rounded-full flex items-center justify-center text-white text-2xl font-bold`}>
+              <div className={`${getPriorityColor(audit.score >= 70 ? 'high' : audit.score >= 40 ? 'medium' : 'low')} w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold`}>
                 {audit.score}
               </div>
             </CardContent>

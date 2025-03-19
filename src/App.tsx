@@ -1,0 +1,1 @@
+import Dashboard from '../frontend/src/pages/Dashboard'; 

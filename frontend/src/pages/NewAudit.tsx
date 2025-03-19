@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import auditService, { CreateAuditData } from '../services/auditService';
 import { useAuth } from '../context/AuthContext';
+import AddIcon from '@mui/icons-material/Add';
 
 const NewAudit: React.FC = () => {
   const navigate = useNavigate();
@@ -62,7 +63,10 @@ const NewAudit: React.FC = () => {
     <Container maxWidth="md">
       <Box sx={{ mt: 5, mb: 4 }}>
         <Typography variant="h4" component="h1" align="center" gutterBottom>
-          Create New Audit
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <AddIcon sx={{ mr: 1 }} />
+            Create New Audit
+          </Box>
         </Typography>
         <Typography variant="subtitle1" align="center" color="text.secondary" paragraph>
           Enter details about the model you want to audit

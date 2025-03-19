@@ -131,7 +131,7 @@ const settingsNavItems = [
 
 const Profile: React.FC = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState("password");
+  const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseClient } from '@/lib/supabase';
 import { handleError } from '@/utils/error';
-import type { AuthResponse } from '@/types';
+import type { AuthResponse, User } from '@/types';
 
 export async function POST(request: Request) {
   try {
@@ -37,7 +37,13 @@ export async function POST(request: Request) {
     
     // Return success response
     const response: AuthResponse = {
-      user: authData.user,
+      user: authData.user ? {
+        id: authData.user.id,
+        email: authData.user.email || '',
+        first_name: authData.user.user_metadata?.first_name,
+        last_name: authData.user.user_metadata?.last_name,
+        is_paid: authData.user.user_metadata?.is_paid || false
+      } as User : null,
       session: authData.session,
       error: null,
     };

@@ -15,6 +15,7 @@ import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import AddIcon from '@mui/icons-material/Add';
 
 // Add the badge property to the interface
 interface NavItem {
@@ -176,6 +177,7 @@ const Header = () => {
                         }
                       }}
                     >
+                      <AddIcon fontSize="small" style={{ marginRight: '4px' }} />
                       New Audit
                     </Button>
                   )}
@@ -236,6 +238,7 @@ const Header = () => {
                       }
                     }}
                   >
+                    <AddIcon fontSize="small" style={{ marginRight: '4px' }} />
                     New Audit
                   </Button>
                 )}

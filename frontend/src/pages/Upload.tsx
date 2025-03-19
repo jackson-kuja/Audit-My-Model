@@ -720,7 +720,7 @@ const Upload: React.FC = () => {
     if (currentStep === 'obfuscate') {
       return fileType === 'excel' ? "Secure Your Excel Model" : 
              fileType === 'powerpoint' ? "Secure Your PowerPoint Deck" :
-             fileType === 'word' ? "Secure Your Word Document" : "";
+             fileType === 'word' ? "Secure Your Word Doc" : "";
     }
     if (currentStep === 'upload') {
       return fileType === 'excel' ? "Upload Your Model" : 
@@ -820,7 +820,7 @@ const Upload: React.FC = () => {
                     className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'excel' ? 'border-primary bg-accent/50' : 'border-input'}`}
                     onClick={() => handleFileTypeSelect('excel')}
                   >
-                    <FileSpreadsheet className="h-16 w-16 mx-auto mb-4 text-green-600" />
+                    <FileSpreadsheet className="h-16 w-16 mx-auto mb-4" style={{ color: '#0D7239' }} />
                     <h3 className="text-lg font-medium">Excel Spreadsheet</h3>
                     <p className="text-sm text-muted-foreground mt-2">
                       Audit Excel files for formula errors, data issues, and structural problems
@@ -830,20 +830,20 @@ const Upload: React.FC = () => {
                     className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'word' ? 'border-primary bg-accent/50' : 'border-input'}`}
                     onClick={() => handleFileTypeSelect('word')}
                   >
-                    <FileText className="h-16 w-16 mx-auto mb-4 text-blue-600" />
-                    <h3 className="text-lg font-medium">Word Document</h3>
+                    <FileText className="h-16 w-16 mx-auto mb-4" style={{ color: '#1A5CBD' }} />
+                    <h3 className="text-lg font-medium">Word Doc</h3>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Review Word documents for structure, clarity, readability, and formatting
+                      Review Word docs for structure, clarity, readability, and formatting
                     </p>
                   </div>
                   <div 
                     className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'powerpoint' ? 'border-primary bg-accent/50' : 'border-input'}`}
                     onClick={() => handleFileTypeSelect('powerpoint')}
                   >
-                    <Presentation className="h-16 w-16 mx-auto mb-4 text-orange-600" />
-                    <h3 className="text-lg font-medium">PowerPoint Presentation</h3>
+                    <Presentation className="h-16 w-16 mx-auto mb-4" style={{ color: '#D04423' }} />
+                    <h3 className="text-lg font-medium">PowerPoint Deck</h3>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Review presentations for design consistency, accessibility, and best practices
+                      Review decks for design consistency, accessibility, and best practices
                     </p>
                   </div>
                 </div>
@@ -883,7 +883,7 @@ const Upload: React.FC = () => {
                     <div>
                       <h3 className="text-lg font-medium mb-2">Protect Your Confidential Content</h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        Secure your PowerPoint content by scrambling text and numbers while maintaining your presentation's visual layout.
+                        Secure your PowerPoint content by scrambling text and numbers while maintaining your deck's visual layout.
                       </p>
                       
                       <div className="space-y-4 mt-4 p-4 bg-background rounded-lg border">

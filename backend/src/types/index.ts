@@ -3,7 +3,7 @@ export interface User {
   email: string;
   first_name?: string;
   last_name?: string;
-  is_paid: boolean;
+  is_paid?: boolean;
   subscription_end_date?: string;
 }
 

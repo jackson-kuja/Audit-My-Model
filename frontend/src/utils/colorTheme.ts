@@ -2,38 +2,38 @@
  * Centralized color theme utility for consistent styling across the application
  */
 
-// Status badge colors - Teal color scheme
+// Status badge colors - Slate grayscale scheme
 export const getStatusColor = (status: string | undefined): string => {
   switch (status?.toLowerCase()) {
     case 'completed':
-      return 'bg-teal-600 text-white hover:bg-teal-700';
+      return 'bg-slate-700 text-white hover:bg-slate-800';
     case 'pending':
     case 'todo':
-      return 'bg-teal-400 text-black hover:bg-teal-500';
+      return 'bg-slate-500 text-white hover:bg-slate-600';
     case 'in_progress':
     case 'processing':
-      return 'bg-teal-500 text-white hover:bg-teal-600';
+      return 'bg-slate-700 text-white hover:bg-slate-800';
     case 'failed':
     case 'error':
     case 'cancelled':
     case 'canceled':
-      return 'bg-teal-800 text-white hover:bg-teal-900';
+      return 'bg-slate-900 text-white hover:bg-slate-950';
     default:
-      return 'bg-teal-300 text-black hover:bg-teal-400';
+      return 'bg-slate-400 text-black hover:bg-slate-500';
   }
 };
 
-// Priority/risk level badge colors - Violet color scheme
+// Priority/risk level badge colors - Red to teal gradient scheme
 export const getPriorityColor = (priority: string | undefined): string => {
   switch (priority?.toLowerCase()) {
     case 'high':
-      return 'bg-violet-700 text-white hover:bg-violet-800';
+      return 'bg-red-500 text-white hover:bg-red-600';
     case 'medium':
-      return 'bg-violet-500 text-white hover:bg-violet-600';
+      return 'bg-orange-500 text-white hover:bg-orange-600';
     case 'low':
-      return 'bg-violet-300 text-black hover:bg-violet-400';
+      return 'bg-amber-500 text-white hover:bg-amber-600';
     default:
-      return 'bg-violet-200 text-black hover:bg-violet-300';
+      return 'bg-teal-500 text-white hover:bg-teal-600';
   }
 };
 
@@ -51,15 +51,19 @@ export const getSeverityColor = (severity: string | undefined): string => {
   }
 };
 
-// Model/document type colors - Mixed color scheme
+// Model/document type colors - Using exact Microsoft Office brand colors
 export const getLabelColor = (label: string | undefined): string => {
   switch (label?.toLowerCase()) {
     case 'model':
-      return '#8b5cf6'; // Violet-500
+      return '#0D7239'; // Microsoft Excel green
     case 'document':
-      return '#3b82f6'; // Blue-500
+      return '#1A5CBD'; // Microsoft Word blue
+    case 'doc':
+      return '#1A5CBD'; // Microsoft Word blue
     case 'presentation':
-      return '#f97316'; // Orange-500
+      return '#D04423'; // Microsoft PowerPoint orange/red
+    case 'deck':
+      return '#D04423'; // Microsoft PowerPoint orange/red
     case 'data':
       return '#10b981'; // Emerald-500
     case 'security':
@@ -85,4 +89,23 @@ export const getRiskScoreHexColor = (score: number | undefined): string => {
   if (score >= 80) return '#10b981'; // emerald-500
   if (score >= 60) return '#f59e0b'; // amber-500
   return '#e11d48'; // rose-600
+};
+
+// Get status badge variant for shadcn components
+export const getStatusVariant = (status: string | undefined): "default" | "secondary" | "destructive" | "outline" => {
+  switch (status?.toLowerCase()) {
+    case 'pending':
+      return "secondary";
+    case 'in_progress':
+      return "default";
+    case 'completed':
+      return "default";
+    case 'error':
+    case 'failed':
+      return "destructive";
+    case 'cancelled':
+      return "outline";
+    default:
+      return "outline";
+  }
 }; 

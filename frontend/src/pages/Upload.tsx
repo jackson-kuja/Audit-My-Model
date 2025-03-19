@@ -5,6 +5,8 @@ import auditService from '../services/auditService';
 import { supabase } from '../utils/supabase';
 import { CreateAuditData } from '../services/auditService';
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
+import api from '../utils/api';
+import axios from 'axios';
 
 // Shadcn UI components
 import { Button } from '../components/ui/button';
@@ -65,12 +67,47 @@ const pptPresets = [
   { id: 'narration', label: 'Notes & Narration' },
 ];
 
-type StepType = 'type' | 'animation-1' | 'obfuscate' | 'animation-2' | 'upload' | 'animation-3' | 'analyze' | 'animation-4' | 'confirmation';
+// Define the step types more precisely
+type StepType = 
+  | 'type' 
+  | 'animation-1' 
+  | 'obfuscate' 
+  | 'animation-2' 
+  | 'upload' 
+  | 'animation-3' 
+  | 'analyze' 
+  | 'animation-4' 
+  | 'confirmation';
+
+const isAnimationStep = (step: StepType): boolean => {
+  return step.startsWith('animation-');
+};
+
+// Helper function to check if current step is after a specific step
+const isStepAfter = (currentStep: StepType, targetStep: StepType): boolean => {
+  const stepOrder: StepType[] = [
+    'type', 
+    'animation-1', 
+    'obfuscate', 
+    'animation-2', 
+    'upload', 
+    'animation-3', 
+    'analyze', 
+    'animation-4', 
+    'confirmation'
+  ];
+  
+  const currentIndex = stepOrder.indexOf(currentStep);
+  const targetIndex = stepOrder.indexOf(targetStep);
+  
+  return currentIndex > targetIndex;
+};
 
 const Upload: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
   const [fileType, setFileType] = useState<'excel' | 'powerpoint' | ''>('');
@@ -120,7 +157,7 @@ const Upload: React.FC = () => {
     src: '/images/processing_animation.riv',
     autoplay: true,
     layout: new Layout({
-      fit: Fit.FitHeight,
+      fit: Fit.Contain,
       alignment: Alignment.Center
     }),
   });
@@ -233,31 +270,31 @@ const Upload: React.FC = () => {
         }, 2000);
       }, 1475);
     } else if (currentStep === 'animation-4') {
-      // Fourth animation - 4.4 seconds total (cut by 0.1s)
+      // Fourth animation - keep it running until analysis is complete
       setAnimationProgress(0);
       
       // Progress to 50% in 1.45 seconds
       animationTimer = setTimeout(() => {
         setAnimationProgress(50);
         
-        // Pause at 50% for 1.5 seconds
-        pauseTimer = setTimeout(() => {
+        // Only auto-progress if not waiting for actual analysis
+        if (uploadProgress.status === 'success') {
           // Continue to 100% in 1.45 seconds
           completeTimer = setTimeout(() => {
             setAnimationProgress(100);
             setCurrentStep('confirmation');
           }, 1450);
-        }, 1500);
+        }
+        // If still processing, the polling will update the state when complete
       }, 1450);
     }
 
-    // Clean up timers
     return () => {
       clearTimeout(animationTimer);
       clearTimeout(pauseTimer);
       clearTimeout(completeTimer);
     };
-  }, [currentStep]);
+  }, [currentStep, uploadProgress.status]);
 
   const handleNextStep = () => {
     if (currentStep === 'type') {
@@ -314,6 +351,16 @@ const Upload: React.FC = () => {
     }
   }, [user]);
 
+  // Clean up any polling intervals when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        console.log('[Frontend] Cleaning up polling interval on unmount');
+      }
+    };
+  }, []);
+
   const handleUpload = async () => {
     if (!file) {
       setError('Please upload a file');
@@ -335,33 +382,41 @@ const Upload: React.FC = () => {
       return;
     }
 
+    // Log with timestamp for better tracking in console
+    const logWithTimestamp = (message: string) => {
+      const now = new Date();
+      const timestamp = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`;
+      console.log(`[${timestamp}] 🚀 FRONTEND - ${message}`);
+    };
+
+    logWithTimestamp(`Starting upload for ${file.name}`);
+    logWithTimestamp(`File details: ${file.type}, ${file.size} bytes`);
+    logWithTimestamp(`File type: ${fileType}`);
+    logWithTimestamp(`Selected presets: ${selectedPresets.join(', ')}`);
+    logWithTimestamp(`Custom requirements: ${customRequirements ? 'Yes' : 'No'}`);
+    logWithTimestamp(`User: ${user.id}`);
+
     try {
+      // Get auth token from Supabase and set it to localStorage
+      logWithTimestamp('Getting Supabase session');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) {
+        console.error('❌ FRONTEND - No auth token found in session');
+        throw new Error('You must be logged in to upload a file. Please refresh the page and try again.');
+      }
+      
+      logWithTimestamp(`Auth token obtained (${token.length} chars)`);
+      localStorage.setItem('auth_token', token);
+
       setUploadProgress({
         progress: 0,
         status: 'uploading',
         message: 'Uploading file...',
       });
 
-      // First upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('model-files')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-      
-      if (uploadError) {
-        throw new Error(uploadError.message);
-      }
-      
-      setUploadProgress({
-        progress: 50,
-        status: 'uploading',
-        message: 'File uploaded. Creating audit...',
-      });
+      logWithTimestamp('Upload progress state updated to 0%');
 
       // Prepare analysis details
       const analysisDetails = {
@@ -369,33 +424,180 @@ const Upload: React.FC = () => {
         customRequirements: customRequirements
       };
 
-      // Create the audit record
+      // First create an audit entry
+      logWithTimestamp('Creating audit record');
+      
       const auditData: CreateAuditData = {
         name: fileName || (file ? file.name.split('.')[0] : 'Unnamed'),
         model_type: fileType,
-        file_path: filePath,
         description: JSON.stringify(analysisDetails)
       };
       
+      logWithTimestamp(`Audit data prepared: ${JSON.stringify(auditData)}`);
       const audit = await auditService.createAudit(auditData);
+      logWithTimestamp(`Audit created with ID: ${audit.id}`);
       
-      if (audit) {
+      setUploadProgress({
+        progress: 30,
+        status: 'uploading',
+        message: 'Audit created. Uploading file...',
+      });
+      
+      // Now upload the file through the backend API, which will trigger analysis
+      logWithTimestamp('Preparing to upload file');
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('auditId', audit.id);
+      
+      logWithTimestamp(`FormData created with auditId: ${audit.id}`);
+      logWithTimestamp('Starting file upload to backend');
+      
+      // Use the uploadFile method from the API client
+      const uploadResponse = await api.audits.uploadFile(formData, (progressEvent) => {
+        const total = progressEvent.total || 0;
+        // Scale progress from 30% to 80%
+        const scaledProgress = 30 + Math.round((progressEvent.loaded / total) * 50);
+        
+        logWithTimestamp(`Upload progress: ${Math.round((progressEvent.loaded / total) * 100)}%`);
+        
         setUploadProgress({
-          progress: 100,
-          status: 'success',
-          message: 'Audit created successfully!',
+          progress: scaledProgress,
+          status: 'uploading',
+          message: `Uploading: ${Math.round((progressEvent.loaded / total) * 100)}%`,
         });
-      } else {
-        throw new Error('Failed to create audit');
+      });
+      
+      logWithTimestamp(`Upload response received with status: ${uploadResponse.status}`);
+      logWithTimestamp(`Upload response data: ${JSON.stringify(uploadResponse.data)}`);
+      
+      // Check for the analysis status and start polling
+      logWithTimestamp('Starting to poll for analysis status');
+      
+      // Set up polling for status updates
+      let pollCount = 0;
+      const maxPolls = 60; // Max 5 minutes (5s intervals)
+      
+      // Clear any existing interval
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
       }
+      
+      pollIntervalRef.current = setInterval(async () => {
+        pollCount++;
+        logWithTimestamp(`Polling for analysis status (attempt ${pollCount}/${maxPolls})`);
+        
+        try {
+          const auditResponse = await auditService.getAuditById(audit.id);
+          logWithTimestamp(`Poll response: status = ${auditResponse.status}`);
+          
+          // Update progress based on status
+          if (auditResponse.status === 'completed') {
+            logWithTimestamp('Analysis completed successfully');
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            
+            setUploadProgress({
+              progress: 100,
+              status: 'success',
+              message: 'Analysis completed!',
+            });
+            
+            // Only auto-advance to confirmation if not already there,
+            // and make sure animation-4 completes first
+            if (currentStep === 'animation-4' || currentStep === 'confirmation') {
+              // If already on confirmation, just update the status
+              // If on animation-4, transition to confirmation after a brief delay
+              if (currentStep === 'animation-4') {
+                setTimeout(() => {
+                  setCurrentStep('confirmation');
+                }, 1000); // Give the animation time to display success
+              }
+            }
+          } else if (auditResponse.status === 'error' || auditResponse.status === 'failed') {
+            logWithTimestamp(`Analysis failed: ${auditResponse.error_message || 'Unknown error'}`);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            
+            setUploadProgress({
+              progress: 0,
+              status: 'error',
+              message: auditResponse.error_message || 'Analysis failed',
+            });
+            
+            setError(auditResponse.error_message || 'Analysis failed');
+            setCurrentStep('analyze');
+          } else {
+            // For pending or in_progress statuses
+            // Calculate progress between 80% and 95% based on poll count
+            const analysisProgress = Math.min(80 + Math.floor(pollCount / 3), 95);
+            
+            setUploadProgress({
+              progress: analysisProgress,
+              status: 'uploading',
+              message: 'Analyzing file...',
+            });
+          }
+          
+          // Stop polling after max attempts
+          if (pollCount >= maxPolls) {
+            logWithTimestamp('Max polling attempts reached');
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            
+            // Show a timeout message but don't consider it an error
+            // The analysis might still complete eventually
+            setUploadProgress({
+              progress: 95,
+              status: 'uploading',
+              message: 'Analysis taking longer than expected, but still processing...',
+            });
+          }
+        } catch (pollError) {
+          logWithTimestamp(`Error polling for status: ${pollError}`);
+        }
+      }, 5000); // Poll every 5 seconds
+      
+      // Start with initial progress after upload
+      setUploadProgress({
+        progress: 80,
+        status: 'uploading',
+        message: 'Analyzing file...',
+      });
+      
+      // Navigate to the appropriate next step
+      if (currentStep === 'analyze') {
+        setCurrentStep('animation-4');
+      }
+      
     } catch (err) {
-      console.error('Upload error:', err);
+      console.error('❌ FRONTEND - Upload error:', err);
+      
+      let errorMessage = 'Upload failed';
+      
+      // Handle different error types
+      if (axios.isAxiosError(err) && err.response) {
+        console.error('❌ FRONTEND - API error status:', err.response.status);
+        console.error('❌ FRONTEND - API error data:', JSON.stringify(err.response.data));
+        
+        errorMessage = err.response.data?.message || err.response.data?.error || err.message;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
       setUploadProgress({
         progress: 0,
         status: 'error',
-        message: 'Upload failed',
+        message: errorMessage,
       });
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      
+      setError(errorMessage);
       
       // If upload fails, go back to analyze step
       setCurrentStep('analyze');
@@ -403,6 +605,8 @@ const Upload: React.FC = () => {
   };
 
   const handleDashboardNavigation = () => {
+    // Keep the polling running in the background so analysis can complete
+    // even if user navigates away 
     navigate('/dashboard');
   };
 
@@ -411,6 +615,7 @@ const Upload: React.FC = () => {
     navigate('/profile?tab=subscription');
   };
 
+  // Render step indicator
   const renderStepIndicator = () => {
     // Only show real steps in the indicator (not animations)
     const isStep1Active = currentStep === 'type';
@@ -419,10 +624,10 @@ const Upload: React.FC = () => {
     const isStep4Active = currentStep === 'analyze';
     const isStep5Active = currentStep === 'confirmation';
     
-    const isAfterStep1 = ['animation-1', 'obfuscate', 'animation-2', 'upload', 'animation-3', 'analyze', 'animation-4', 'confirmation'].includes(currentStep);
-    const isAfterStep2 = ['animation-2', 'upload', 'animation-3', 'analyze', 'animation-4', 'confirmation'].includes(currentStep);
-    const isAfterStep3 = ['animation-3', 'analyze', 'animation-4', 'confirmation'].includes(currentStep);
-    const isAfterStep4 = ['animation-4', 'confirmation'].includes(currentStep);
+    const isAfterStep1 = isStepAfter(currentStep, 'type');
+    const isAfterStep2 = isStepAfter(currentStep, 'obfuscate');
+    const isAfterStep3 = isStepAfter(currentStep, 'upload');
+    const isAfterStep4 = isStepAfter(currentStep, 'analyze');
     
     return (
       <div className="flex items-center justify-center mb-8">
@@ -459,18 +664,29 @@ const Upload: React.FC = () => {
     );
   };
 
+  // Render animation component based on current step
+  const renderAnimationForStep = (step: StepType) => {
+    switch (step) {
+      case 'animation-1':
+        return <Step1Animation />;
+      case 'animation-2':
+        return <Step2Animation />;
+      case 'animation-3':
+        return <Step3Animation />;
+      case 'animation-4':
+      case 'confirmation': // Allow the animation to be shown in confirmation step when still processing
+        if (uploadProgress.status !== 'success') {
+          return <Step4Animation />;
+        }
+        return null;
+      default:
+        return null;
+    }
+  };
+
   // Render animation steps
   const renderAnimation = () => {
-    if (currentStep === 'animation-1') {
-      return <Step1Animation />;
-    } else if (currentStep === 'animation-2') {
-      return <Step2Animation />;
-    } else if (currentStep === 'animation-3') {
-      return <Step3Animation />;
-    } else if (currentStep === 'animation-4') {
-      return <Step4Animation />;
-    }
-    return null;
+    return renderAnimationForStep(currentStep);
   };
 
   // Get card title based on current step
@@ -486,7 +702,7 @@ const Upload: React.FC = () => {
       return fileType === 'excel' ? "Model Analysis Options" : "Deck Analysis Options";
     }
     if (currentStep === 'confirmation') return "Audit Request Confirmation";
-    if (currentStep.startsWith('animation')) return "";
+    if (isAnimationStep(currentStep)) return "";
     
     return "";
   };
@@ -506,14 +722,14 @@ const Upload: React.FC = () => {
       return fileType === 'excel' ? "Select what aspects you want to analyze in your model" : "Select what aspects you want to analyze in your deck";
     }
     if (currentStep === 'confirmation') return "Your audit has been successfully submitted";
-    if (currentStep.startsWith('animation')) return "";
+    if (isAnimationStep(currentStep)) return "";
     
     return "";
   };
 
   return (
     <>
-      {currentStep.startsWith('animation') ? (
+      {isAnimationStep(currentStep) ? (
         // For animation steps, display header, step indicators, and animation
         <div className="container mx-auto max-w-3xl py-8 px-4">
           {/* Header Section */}
@@ -731,22 +947,46 @@ const Upload: React.FC = () => {
               )}
 
               {currentStep === 'confirmation' && (
-                <div className="space-y-6 py-4">
+                <div className="space-y-6 py-6">
                   <div className="flex flex-col items-center text-center">
-                    <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+                    {uploadProgress.status === 'success' ? (
+                      <CheckCircle className="h-20 w-20 text-green-500 mb-6" />
+                    ) : (
+                      <div className="h-32 w-32 mb-6 bg-primary/5 rounded-full p-2 flex items-center justify-center animate-pulse">
+                        <Step4Animation />
+                      </div>
+                    )}
                     <h3 className="text-2xl font-bold mb-2">Audit Request Submitted</h3>
                     
                     <div className="space-y-4">
                       <div className="flex items-center justify-center gap-2 text-primary">
-                        <Zap className="h-5 w-5" />
-                        <p className="font-medium">Processing Your Model</p>
+                        {uploadProgress.status === 'success' ? (
+                          <CheckCircle className="h-5 w-5" />
+                        ) : (
+                          <Zap className="h-5 w-5 animate-pulse" />
+                        )}
+                        <p className="font-medium">
+                          {uploadProgress.status === 'success' ? 'Model Processing Complete' : 'Processing Your Model'}
+                        </p>
                       </div>
-                      <p className="text-muted-foreground">
-                        Your audit is being processed and results will be available in your dashboard shortly.
-                        We'll send you a confirmation email when it's ready.
+                      <p className="text-muted-foreground max-w-md">
+                        {uploadProgress.status === 'success' 
+                          ? 'Your audit has been completed and results are now available in your dashboard.'
+                          : 'Your audit is being processed and results will be available in your dashboard shortly. We will send you a confirmation email when it\'s ready.'}
                       </p>
-                      <Button onClick={handleDashboardNavigation} className="mt-6">
-                        Go to Dashboard
+                      
+                      {uploadProgress.status !== 'success' && (
+                        <div className="w-full max-w-md mt-4">
+                          <div className="flex justify-between mb-1">
+                            <p className="text-sm font-medium">{uploadProgress.message || "Processing..."}</p>
+                            <p className="text-sm font-medium">{uploadProgress.progress}%</p>
+                          </div>
+                          <Progress value={uploadProgress.progress} className="w-full h-2" />
+                        </div>
+                      )}
+                      
+                      <Button onClick={handleDashboardNavigation} className="mt-8 px-8 py-6 text-base" size="lg">
+                        {uploadProgress.status === 'success' ? 'View Results' : 'Go to Dashboard'}
                       </Button>
                     </div>
                   </div>

@@ -4,30 +4,54 @@ import { handleError, ApiError } from '@/utils/error';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
+  console.log('📤 [upload] Received upload request');
+  
   try {
     // Get the auth token from headers
     const authHeader = request.headers.get('authorization');
+    console.log('📤 [upload] Auth header present:', !!authHeader);
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('📤 [upload] Missing or invalid auth header');
       throw new ApiError('Unauthorized', 401);
     }
     
     const token = authHeader.split(' ')[1];
     if (!token) {
+      console.error('📤 [upload] Empty token');
       throw new ApiError('Invalid authentication token', 401);
     }
     
+    console.log('📤 [upload] Token present with length:', token.length);
+    
+    // Parse formData early to log any issues
+    let formData;
+    try {
+      formData = await request.formData();
+      console.log('📤 [upload] FormData keys:', Array.from(formData.keys()));
+    } catch (formError) {
+      console.error('📤 [upload] Error parsing form data:', formError);
+      throw new ApiError('Invalid form data', 400);
+    }
+    
     // Verify the token and get user
+    console.log('📤 [upload] Verifying token with Supabase');
     const supabase = createSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
+      console.error('📤 [upload] Auth error:', authError?.message);
       throw new ApiError('Authentication failed', 401);
     }
     
-    // Parse the form data
-    const formData = await request.formData();
+    console.log('📤 [upload] User authenticated:', user.id);
+    
+    // Get form data
     const file = formData.get('file') as File;
     const auditId = formData.get('auditId') as string;
+    
+    console.log('📤 [upload] File present:', !!file);
+    console.log('📤 [upload] Audit ID:', auditId);
     
     if (!file) {
       throw new ApiError('File is required', 400);
@@ -77,6 +101,8 @@ export async function POST(request: Request) {
         file_mime_type: file.type,
         upload_timestamp: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        status: 'in_progress',
+        file_path: fileName,
       })
       .eq('id', auditId)
       .select()
@@ -85,6 +111,40 @@ export async function POST(request: Request) {
     if (updateError) {
       throw new ApiError(updateError.message, 400);
     }
+    
+    // Directly trigger analysis (synchronously)
+    try {
+      console.log(`📤 [upload] Directly calling Excel analysis for file ${fileName}`);
+      
+      try {
+        // Create a direct import for the analyze handler
+        const { handleExcelAnalysis } = await import('../excel/analyze/handler');
+        
+        // Call the handler directly with the necessary parameters
+        const analysisResult = await handleExcelAnalysis({
+          file_path: fileName,
+          model: 'o3-mini',
+          use_tools: true,
+          auth_token: authHeader?.replace('Bearer ', '') || '',
+          user_id: audit.user_id
+        });
+        
+        console.log(`📤 [upload] Direct analysis call succeeded with result:`, JSON.stringify(analysisResult).substring(0, 200) + '...');
+      } catch (analyzeError) {
+        console.error(`📤 [upload] Error in direct analysis call:`, analyzeError);
+        
+        // Don't mark as failed here - let the analyze endpoint run asynchronously
+        console.log("📤 [upload] Analysis will be retried asynchronously");
+      }
+    } catch (analyzeError) {
+      console.error(`📤 [upload] Error calling analysis API:`, analyzeError);
+      
+      // Don't mark as failed here - let the analyze endpoint run asynchronously
+      console.log("📤 [upload] Analysis will be retried asynchronously");
+    }
+    
+    // Set CORS headers dynamically based on the origin
+    const origin = request.headers.get('origin') || 'http://localhost:3000';
     
     return NextResponse.json({
       success: true,
@@ -98,7 +158,7 @@ export async function POST(request: Request) {
       },
     }, {
       headers: {
-        'Access-Control-Allow-Origin': 'http://localhost:3000',
+        'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
@@ -110,11 +170,13 @@ export async function POST(request: Request) {
 }
 
 // Handle OPTIONS request for CORS
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
+  const origin = request.headers.get('origin') || 'http://localhost:3000';
+  
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': 'http://localhost:3000',
+      'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Credentials': 'true',

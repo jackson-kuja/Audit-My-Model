@@ -7,24 +7,34 @@ const protectedPaths = [
   '/api/audits',
   '/api/excel/upload',
   '/api/excel/analyze',
+  '/api/upload',
   '/api/subscription',
 ];
 
 // This function can be marked `async` if using `await` inside
 export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
-  const response = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  const authHeader = request.headers.get('authorization');
+  const origin = request.headers.get('origin') || 'http://localhost:3000';
+  
+  // Log the auth header for debugging
+  console.log('[Middleware] Request method:', request.method);
+  console.log('[Middleware] Request URL:', request.nextUrl.pathname);
+  console.log('[Middleware] Auth header present:', !!authHeader);
+  
+  // Ensure the authorization header is properly passed through
+  if (authHeader) {
+    requestHeaders.set('authorization', authHeader);
+  }
   
   // Add CORS headers for API routes
   if (request.method === 'OPTIONS') {
+    console.log('[Middleware] Handling OPTIONS request for', request.nextUrl.pathname);
+    
     return new NextResponse(null, {
       status: 204,
       headers: {
-        'Access-Control-Allow-Origin': 'http://localhost:3000',
+        'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
@@ -33,11 +43,18 @@ export function middleware(request: NextRequest) {
     });
   }
   
-  // For actual requests, add appropriate CORS headers
-  response.headers.set('Access-Control-Allow-Origin', 'http://localhost:3000');
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
   
-  const authHeader = request.headers.get('authorization');
+  // For actual requests, add appropriate CORS headers
+  response.headers.set('Access-Control-Allow-Origin', origin);
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
   const isProtectedPath = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path));
   
   // Only enforce authorization on protected paths that aren't OPTIONS requests
@@ -48,7 +65,13 @@ export function middleware(request: NextRequest) {
         JSON.stringify({ error: 'Unauthorized', message: 'Authentication token is required' }),
         {
           status: 401,
-          headers: response.headers,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Credentials': 'true',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
         }
       );
     }

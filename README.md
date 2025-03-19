@@ -150,3 +150,47 @@ The system consists of several components:
 ## Contact
 
 For questions or support, please contact the project maintainers.
+
+## Debugging
+
+The application includes comprehensive logging for debugging purposes. These logs can be viewed in:
+
+### Frontend Debugging
+
+1. **Browser DevTools (F12 in Chrome)**
+   - All frontend API calls and progress events are logged with timestamps
+   - Look for messages prefixed with `[HH:MM:SS.mmm] 🚀 FRONTEND`
+   - The Upload component has detailed logging for all steps: file selection, upload progress, and analysis status
+
+2. **Status Polling**
+   - The frontend polls the backend for analysis status every 5 seconds
+   - Progress is reported to the user through the UI
+   - Full debugging information is available in the console
+
+### Backend Debugging
+
+1. **Server Logs**
+   - All backend operations are logged with timestamps
+   - Excel API logs are prefixed with `[HH:MM:SS.mmm] 🔄 BACKEND EXCEL API`
+   - LLM API logs are prefixed with `[HH:MM:SS.mmm] 🔍 LLM API`
+
+2. **API Endpoints**
+   - `/api/excel/analyze` - Performs Excel analysis using the LLM
+   - `/api/openai/chat` - Direct access to OpenAI chat completion
+   - `/api/upload` - Handles file uploads
+
+### Troubleshooting Common Issues
+
+1. **File Upload Issues**
+   - Check frontend console for upload progress logs
+   - Verify authentication token is being passed correctly
+   - Check backend storage access permissions
+
+2. **Analysis Issues**
+   - Check LLM API logs for request/response details
+   - Verify OpenAI API key is correctly set in `.env.local`
+   - Look for parsing errors in Excel data extraction
+
+3. **Database Updates**
+   - Use the admin interface to check audit record status
+   - Verify Supabase connection and permissions

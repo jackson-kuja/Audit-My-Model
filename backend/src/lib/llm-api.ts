@@ -1,137 +1,207 @@
-// Real implementation of the LLM API service using OpenAI
-import axios from 'axios';
-import { parseExcelFile, excelToText } from '@/utils/excel-parser';
+import OpenAI from 'openai';
+import { parseExcelFile, excelToText, ParsedExcel } from '../utils/excel-parser';
 
-interface LLMAPIRequest {
+// Initialize OpenAI with API key
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Enhanced logging function
+function logWithTimestamp(message: string) {
+  const now = new Date();
+  const timestamp = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`;
+  console.log(`[${timestamp}] 🔍 LLM API - ${message}`);
+}
+
+interface LLMAPIOptions {
   model: string;
   useTools: boolean;
   fileBase64: string;
-  fileName: string | undefined;
-  fileBuffer?: Buffer;
+  fileName: string;
+  fileBuffer: Buffer;
 }
 
 interface LLMAnalysisResult {
   summary: string;
   findings: Array<{
     type: string;
-    severity: 'high' | 'medium' | 'low';
+    severity: string;
+    location: string;
     description: string;
-    location?: string;
   }>;
   score: number;
-  insights?: string[];
+  model_used: string;
+  completion_time: string;
 }
 
-const DEFAULT_MODEL = 'gpt-4o';  // Using gpt-4o as fallback since o3-mini may not exist
-const API_KEY = process.env.OPENAI_API_KEY || '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';
-
-export async function callLLMAPI(params: LLMAPIRequest): Promise<LLMAnalysisResult> {
-  console.log(`Analyzing file with ${params.model}${params.useTools ? ' using tools' : ''}`);
+/**
+ * Calls the OpenAI API to analyze the Excel file
+ * @param options The options for the LLM API call
+ * @returns The analysis result
+ */
+export async function callLLMAPI(options: LLMAPIOptions): Promise<LLMAnalysisResult> {
+  logWithTimestamp(`Starting analysis with model ${options.model}`);
+  logWithTimestamp(`File: ${options.fileName}, size: ${options.fileBuffer.length} bytes`);
   
   try {
-    const fileName = params.fileName || 'unknown.xlsx';
-    const modelToUse = 'gpt-4o';
-    
-    // Create a buffer from base64 string
-    const buffer = Buffer.from(params.fileBase64, 'base64');
-    
     // Parse the Excel file
-    console.log(`Parsing Excel file ${fileName}...`);
-    const parsedExcel = parseExcelFile(buffer, fileName);
+    logWithTimestamp('Parsing Excel file...');
+    const startParseTime = Date.now();
+    const parsedExcel = parseExcelFile(options.fileBuffer, options.fileName);
+    const endParseTime = Date.now();
+    logWithTimestamp(`Excel file parsed in ${endParseTime - startParseTime}ms`);
+    logWithTimestamp(`Parsed data: ${parsedExcel.sheetsCount} sheets, ${parsedExcel.summary.formulaCount} formulas`);
     
-    // Convert to text format for LLM analysis
+    // Convert parsed Excel to text representation for LLM context
+    logWithTimestamp('Converting Excel data to text for LLM...');
     const excelText = excelToText(parsedExcel);
-    console.log(`Excel file parsed successfully. Generated ${excelText.length} characters of content.`);
+    logWithTimestamp(`Excel data converted to text format (${excelText.length} chars)`);
     
-    // Create the prompt with actual Excel content
-    const systemPrompt = `You are an expert Excel model auditor. Analyze the provided Excel model information and identify issues, risks, and recommendations.
-Focus on formula errors, structural issues, and best practices.`;
-
-    const userPrompt = `I'm providing a detailed analysis of an Excel file named "${fileName}". This is the extracted content and structure:
-
-${excelText}
-
-Based on this information, please provide:
-1. A summary of the file contents and purpose
-2. Key issues or risks found in the model (if any)
-3. A quality score from 0-100
-4. Specific locations of any problems (e.g., cell references, sheet names)
-
-Format your response as a JSON object with these fields:
-- summary: A paragraph summarizing the model
-- findings: Array of objects with {type, severity, description, location}
-- score: Numerical score from 0-100`;
-
-    // Make the OpenAI API call with the detailed Excel content
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: modelToUse,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-        response_format: { type: "json_object" }
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const result = response.data.choices[0]?.message?.content;
+    // Create prompt for LLM
+    logWithTimestamp('Creating LLM prompt...');
+    const prompt = createExcelAuditPrompt(excelText, parsedExcel);
+    logWithTimestamp(`Prompt created (${prompt.length} chars)`);
     
-    if (!result) {
-      throw new Error('No response content from OpenAI');
-    }
-    
-    // Parse the JSON response
-    let parsedResult;
-    try {
-      parsedResult = JSON.parse(result);
-    } catch (error) {
-      console.error('Failed to parse OpenAI response as JSON:', result);
-      throw new Error('Invalid response format from OpenAI');
-    }
-    
-    // Format the response to match our expected structure
-    return {
-      summary: parsedResult.summary || 'No summary provided',
-      findings: Array.isArray(parsedResult.findings) ? parsedResult.findings : [],
-      score: typeof parsedResult.score === 'number' ? parsedResult.score : 0
-    };
-    
-  } catch (error) {
-    console.error('Error calling OpenAI API:', error);
-    
-    // Fallback to mock data if the API call fails
-    return {
-      summary: "This Excel file appears to be a financial model with calculations and data tables. While I couldn't analyze it in detail, it likely contains financial projections or analysis.",
-      findings: [
+    // Call OpenAI API
+    logWithTimestamp(`Sending request to OpenAI API (model: ${options.model})...`);
+    const startTime = Date.now();
+    const response = await openai.chat.completions.create({
+      model: options.model || "o3-mini",
+      messages: [
         {
-          type: "warning",
-          severity: "medium",
-          description: "Excel models often contain hardcoded values that should be parameterized",
-          location: "Various cells"
+          role: "system",
+          content: "You are an Excel auditing assistant that analyzes spreadsheets for errors, potential issues, and improvements. Provide detailed analysis with specific cell references."
         },
         {
-          type: "info",
-          severity: "low",
-          description: "Consider using named ranges for better formula readability",
-          location: "Throughout model"
-        },
-        {
-          type: "info",
-          severity: "low",
-          description: "Input, calculation, and output sections should be clearly separated",
-          location: "Model structure"
+          role: "user",
+          content: prompt
         }
       ],
-      score: 65
-    };
+      max_completion_tokens: 3000,
+      response_format: { type: "json_object" }
+    });
+    
+    const endTime = Date.now();
+    logWithTimestamp(`OpenAI API response received in ${endTime - startTime}ms`);
+    
+    // Parse the response
+    const content = response.choices[0].message.content;
+    if (!content) {
+      logWithTimestamp('Error: Empty response from LLM');
+      throw new Error("Empty response from LLM");
+    }
+    
+    logWithTimestamp(`Response content length: ${content.length} chars`);
+    
+    try {
+      logWithTimestamp('Parsing JSON response...');
+      const parsedResponse = JSON.parse(content);
+      logWithTimestamp('JSON parsed successfully');
+      
+      // Structure the result
+      const result: LLMAnalysisResult = {
+        summary: parsedResponse.summary || "Analysis completed successfully.",
+        findings: parsedResponse.findings || [],
+        score: calculateRiskScore(parsedResponse),
+        model_used: options.model,
+        completion_time: new Date().toISOString()
+      };
+      
+      logWithTimestamp(`Analysis complete: ${result.findings.length} findings, score ${result.score}`);
+      if (result.findings.length > 0) {
+        logWithTimestamp(`Sample finding: ${result.findings[0].type} (${result.findings[0].severity}) at ${result.findings[0].location}`);
+      }
+      
+      return result;
+    } catch (parseError) {
+      logWithTimestamp(`Error parsing LLM response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+      
+      // Return a fallback structured response
+      logWithTimestamp('Using fallback response format');
+      return createFallbackResponse(content, options.model);
+    }
+  } catch (error) {
+    logWithTimestamp(`Error in LLM API: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw error;
   }
+}
+
+/**
+ * Creates a prompt for Excel auditing
+ */
+function createExcelAuditPrompt(excelText: string, parsedExcel: ParsedExcel): string {
+  return `
+Please analyze this Excel file and identify any issues, errors, or areas for improvement. 
+Focus on formula correctness, data validation, structural issues, and best practices.
+
+EXCEL FILE DETAILS:
+${excelText}
+
+Please provide a comprehensive analysis in JSON format with the following structure:
+{
+  "summary": "Overall assessment of the spreadsheet",
+  "findings": [
+    {
+      "type": "error|warning|info",
+      "severity": "high|medium|low",
+      "location": "specific cell or range reference",
+      "description": "detailed description of the issue"
+    }
+  ],
+  "recommendations": [
+    "actionable recommendation to improve the spreadsheet"
+  ]
+}
+`;
+}
+
+/**
+ * Calculates a risk score based on the LLM response
+ */
+function calculateRiskScore(parsedResponse: any): number {
+  let score = 50; // Start with a neutral score
+  
+  // If there are findings, adjust score based on severity
+  if (parsedResponse.findings && Array.isArray(parsedResponse.findings)) {
+    const findingScores = {
+      high: 10,
+      medium: 5,
+      low: 2
+    };
+    
+    parsedResponse.findings.forEach((finding: any) => {
+      if (finding.severity && findingScores[finding.severity as keyof typeof findingScores]) {
+        if (finding.type === 'error') {
+          score += findingScores[finding.severity as keyof typeof findingScores] * 1.5;
+        } else if (finding.type === 'warning') {
+          score += findingScores[finding.severity as keyof typeof findingScores];
+        } else {
+          score += findingScores[finding.severity as keyof typeof findingScores] * 0.5;
+        }
+      }
+    });
+  }
+  
+  // Cap the score at 100
+  return Math.min(Math.round(score), 100);
+}
+
+/**
+ * Creates a fallback response when parsing fails
+ */
+function createFallbackResponse(content: string, model: string): LLMAnalysisResult {
+  return {
+    summary: "The analysis was completed but could not be fully structured. The raw analysis is included in the first finding.",
+    findings: [
+      {
+        type: "info",
+        severity: "medium",
+        location: "general",
+        description: content.slice(0, 1000) + (content.length > 1000 ? "..." : "")
+      }
+    ],
+    score: 50,
+    model_used: model,
+    completion_time: new Date().toISOString()
+  };
 } 

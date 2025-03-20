@@ -53,7 +53,7 @@ export const columns = [
     align: 'center' as const,
     render: (row: Task) => (
       <div className="flex items-center justify-center">
-        <Badge className={getStatusColor(row.status)}>
+        <Badge className={`${getStatusColor(row.status)} rounded-md`}>
           {row.status.toLowerCase()}
         </Badge>
       </div>
@@ -66,7 +66,7 @@ export const columns = [
     align: 'center' as const,
     render: (row: Task) => (
       <div className="flex justify-center">
-        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" 
+        <span className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" 
           style={{ backgroundColor: getLabelColor(row.label), color: '#fff' }}
         >
           {row.label.toLowerCase()}
@@ -81,7 +81,7 @@ export const columns = [
     align: 'center' as const,
     render: (row: Task) => (
       <div className="flex items-center justify-center">
-        <Badge className={getPriorityColor(row.priority)}>
+        <Badge className={`${getPriorityColor(row.priority)} rounded-md`}>
           {row.priority.toLowerCase()}
         </Badge>
       </div>

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/dateUtils';
 import { Audit, AuditResult } from '../types/index';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Unlock, Check, Clock, X, AlertCircle } from 'lucide-react';
+import { Unlock, Check, Clock, X, AlertCircle, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 
 // Shadcn components
 import { Button } from '../components/ui/button';
@@ -12,20 +13,48 @@ import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "../components/ui/select";
 import { toast } from "../hooks/use-toast";
 import {
   getStatusColor,
   getPriorityColor
 } from '../utils/colorTheme';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
+
+// Create a motion-wrapped Card component
+const MotionCard = motion(Card);
 
 // Define finding status type
 type FindingStatus = 'open' | 'in_progress' | 'resolved' | 'ignored';
+
+// Status options with icons and labels
+const statusOptions = [
+  {
+    value: 'open',
+    label: 'Open',
+    icon: <AlertCircle className="h-3 w-3 mr-1" />
+  },
+  {
+    value: 'in_progress',
+    label: 'In Progress',
+    icon: <Clock className="h-3 w-3 mr-1" />
+  },
+  {
+    value: 'resolved',
+    label: 'Resolved',
+    icon: <Check className="h-3 w-3 mr-1" />
+  },
+  {
+    value: 'ignored',
+    label: 'Ignored',
+    icon: <X className="h-3 w-3 mr-1" />
+  }
+];
 
 interface AuditDetailProps {
   audit: Audit | null;
@@ -33,12 +62,140 @@ interface AuditDetailProps {
   error: string | null;
 }
 
-const renderAuditResults = (results: AuditResult) => {
-  if (!results) return null;
+// Status Selector Component
+interface StatusSelectorProps {
+  status: FindingStatus;
+  onStatusChange: (status: FindingStatus) => void;
+}
 
-  // In a real implementation, this would be fetched from or synced with the backend
+// Helper function to get status badge style
+const getStatusBadgeClass = (status: FindingStatus) => {
+  switch (status) {
+    case 'resolved':
+      return 'text-green-800 bg-green-100';
+    case 'in_progress':
+      return 'text-blue-800 bg-blue-100';
+    case 'ignored':
+      return 'text-gray-800 bg-gray-100';
+    default: // open
+      return 'text-yellow-800 bg-yellow-100';
+  }
+};
+
+const StatusSelector: React.FC<StatusSelectorProps> = ({ status, onStatusChange }) => {
+  return (
+    <Select 
+      value={status}
+      onValueChange={(value) => onStatusChange(value as FindingStatus)}
+    >
+      <SelectTrigger 
+        className={`w-auto min-h-6 h-6 text-xs border-0 px-2 py-0 ${getStatusBadgeClass(status)}`}
+      >
+        <SelectValue placeholder="Set status">
+          <span className="flex items-center">
+            {statusOptions.find(option => option.value === status)?.icon}
+            {statusOptions.find(option => option.value === status)?.label}
+          </span>
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent align="end">
+        {statusOptions.map((option) => (
+          <SelectItem 
+            key={option.value} 
+            value={option.value}
+          >
+            <span className="flex items-center">
+              {option.icon}
+              {option.label}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
+
+// Findings List Component
+interface FindingsListProps {
+  results: AuditResult;
+  findingStatuses: Record<string, FindingStatus>;
+  updateFindingStatus: (findingId: string, status: FindingStatus) => void;
+}
+
+const FindingsList: React.FC<FindingsListProps> = ({ results, findingStatuses, updateFindingStatus }) => {
+  if (!results || !results.findings) return null;
+
+  // Get status priority for sorting (in_progress first, open second, resolved third, ignored last)
+  const getStatusPriority = (status: FindingStatus): number => {
+    switch (status) {
+      case 'in_progress': return 0;
+      case 'open': return 1;
+      case 'resolved': return 2;
+      case 'ignored': return 3;
+      default: return 1; // Default to open priority
+    }
+  };
+  
+  // Create a sorted array of findings based on status
+  const sortedFindings = [...results.findings].map((finding, index) => {
+    const findingId = `finding-${index}`;
+    const status = findingStatuses[findingId] || 'open';
+    return { finding, index, status, id: findingId };
+  }).sort((a, b) => {
+    return getStatusPriority(a.status) - getStatusPriority(b.status);
+  });
+
+  return (
+    <LayoutGroup>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {sortedFindings.map(({ finding, index, status, id }) => {
+          const isIgnored = status === 'ignored';
+          
+          return (
+            <MotionCard 
+              key={id}
+              layoutId={id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ 
+                layout: { duration: 0.5, type: "spring", damping: 25 },
+                opacity: { duration: 0.3 }
+              }}
+            >
+              <CardHeader className="py-4">
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <div className="flex items-start gap-2">
+                    <Badge 
+                      className={`${getPriorityColor(finding.severity)} rounded-md`}
+                    >
+                      {finding.severity.toLowerCase()} risk
+                    </Badge>
+                    <CardTitle className={isIgnored ? 'text-gray-400' : ''}>
+                      {finding.title}
+                    </CardTitle>
+                  </div>
+                  <StatusSelector 
+                    status={status} 
+                    onStatusChange={(newStatus) => updateFindingStatus(id, newStatus)} 
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className={`py-4 ${isIgnored ? 'text-gray-400 line-through opacity-70' : ''}`}>
+                <p>{finding.description}</p>
+              </CardContent>
+            </MotionCard>
+          );
+        })}
+      </div>
+    </LayoutGroup>
+  );
+};
+
+const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
+  const navigate = useNavigate();
+  // Lift the state up to this component
   const [findingStatuses, setFindingStatuses] = useState<Record<string, FindingStatus>>({});
-
+  
   // Function to update finding status
   const updateFindingStatus = (findingId: string, status: FindingStatus) => {
     // Update local state
@@ -47,119 +204,12 @@ const renderAuditResults = (results: AuditResult) => {
       [findingId]: status
     }));
 
-    // In a real implementation, this would send the update to the backend
-    // Example of what that might look like:
-    /*
-    api.post(`/audits/${auditId}/findings/${findingId}/status`, { status })
-      .then(() => {
-        toast({
-          title: "Status updated",
-          description: `Finding status set to ${status.replace('_', ' ')}`
-        });
-      })
-      .catch(err => {
-        toast({
-          title: "Update failed",
-          description: "Could not update finding status",
-          variant: "destructive"
-        });
-        console.error(err);
-      });
-    */
-
-    // For now, just show a toast
+    // Show a toast
     toast({
       title: "Status updated",
       description: `Finding status changed to ${status.replace('_', ' ')}`
     });
   };
-
-  // Helper function to get status icon
-  const getStatusIcon = (status: FindingStatus) => {
-    switch (status) {
-      case 'resolved':
-        return <Check className="h-4 w-4 mr-1" />;
-      case 'in_progress':
-        return <Clock className="h-4 w-4 mr-1" />;
-      case 'ignored':
-        return <X className="h-4 w-4 mr-1" />;
-      default:
-        return <AlertCircle className="h-4 w-4 mr-1" />;
-    }
-  };
-
-  // Helper function to get status badge style
-  const getStatusBadgeClass = (status: FindingStatus) => {
-    switch (status) {
-      case 'resolved':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
-      case 'ignored':
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-      default:
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-    }
-  };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {results.findings?.map((finding, index) => {
-        const findingId = `finding-${index}`;
-        const status = findingStatuses[findingId] || 'open';
-        
-        return (
-          <Card key={index}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle>{finding.title}</CardTitle>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className={`text-xs px-2 py-1 ${getStatusBadgeClass(status)}`}
-                    >
-                      {getStatusIcon(status)}
-                      {status.replace('_', ' ')}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => updateFindingStatus(findingId, 'open')}>
-                      <AlertCircle className="h-4 w-4 mr-2" /> Open
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateFindingStatus(findingId, 'in_progress')}>
-                      <Clock className="h-4 w-4 mr-2" /> In Progress
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateFindingStatus(findingId, 'resolved')}>
-                      <Check className="h-4 w-4 mr-2" /> Resolved
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateFindingStatus(findingId, 'ignored')}>
-                      <X className="h-4 w-4 mr-2" /> Ignored
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700">{finding.description}</p>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Badge 
-                className={getPriorityColor(finding.severity)}
-              >
-                {finding.severity.toLowerCase()} risk
-              </Badge>
-            </CardFooter>
-          </Card>
-        );
-      })}
-    </div>
-  );
-};
-
-const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
-  const navigate = useNavigate();
   
   // Get name for Excel file
   const getFileName = () => {
@@ -262,12 +312,12 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
       <div className="mb-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-black">
+            <h1 className="text-3xl font-bold tracking-tight">
               {audit.model_type?.toLowerCase() === 'excel' ? 'Excel Audit Report' : 
                audit.model_type?.toLowerCase() === 'word' ? 'Word Doc Audit' : 
                'PowerPoint Deck Audit'}
             </h1>
-            <Badge className={`px-3 py-1 text-sm font-bold ${getStatusColor(audit.status)}`}>
+            <Badge className={`px-3 py-1 text-sm font-bold rounded-md ${getStatusColor(audit.status)}`}>
               {audit?.status?.toLowerCase() || 'unknown'}
             </Badge>
           </div>
@@ -342,7 +392,7 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
                         {descriptionObj.presets && descriptionObj.presets.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-1">
                             {descriptionObj.presets.map((preset: string, index: number) => (
-                              <Badge key={index} variant="secondary" className="capitalize">
+                              <Badge key={index} variant="secondary" className="capitalize rounded-md">
                                 {preset.replace(/-/g, ' ')}
                               </Badge>
                             ))}
@@ -365,54 +415,58 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
         </Card>
       </div>
       
-      {/* Audit Results Section */}
-      {audit?.results && audit?.status?.toLowerCase() === 'completed' ? (
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="findings">
-              <Unlock className="h-4 w-4 mr-2" />
-              Detailed Findings
-            </TabsTrigger>
-            {audit.results.recommendations && (
-              <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-            )}
-          </TabsList>
-          
-          <TabsContent value="overview" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="prose max-w-none">
-                  <p>{audit.results.summary}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="findings" className="space-y-4">
-            <h2 className="text-xl font-semibold mb-4">Identified Issues</h2>
-            {renderAuditResults(audit.results)}
-          </TabsContent>
-          
-          {audit.results.recommendations && (
-            <TabsContent value="recommendations" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recommendations</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose max-w-none">
-                    <p>{audit.results.recommendations}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-        </Tabs>
-      ) : audit?.status?.toLowerCase() === 'in_progress' || audit?.status?.toLowerCase() === 'processing' ? (
+      {/* Overview Section (moved below Analysis Queries) */}
+      {audit?.results && audit?.status?.toLowerCase() === 'completed' && (
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose max-w-none">
+                <p>{audit.results.summary}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Identified Issues Section - directly shown now */}
+      {audit?.results && audit?.status?.toLowerCase() === 'completed' && (
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Identified Issues</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FindingsList 
+                results={audit.results} 
+                findingStatuses={findingStatuses} 
+                updateFindingStatus={updateFindingStatus}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Recommendations Section */}
+      {audit?.results && audit?.results.recommendations && audit?.status?.toLowerCase() === 'completed' && (
+        <div className="space-y-4 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recommendations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose max-w-none">
+                <p>{audit.results.recommendations}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Processing/Error States */}
+      {audit?.status?.toLowerCase() === 'in_progress' || audit?.status?.toLowerCase() === 'processing' ? (
         <Card>
           <CardHeader>
             <CardTitle>Analysis in Progress</CardTitle>

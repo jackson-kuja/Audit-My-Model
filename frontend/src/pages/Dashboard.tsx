@@ -263,16 +263,16 @@ const Dashboard: React.FC = () => {
                       <div className="space-y-2 flex flex-col items-center">
                         <h3 className="font-medium truncate whitespace-nowrap overflow-hidden w-full">{audit.title}</h3>
                         <div className="flex flex-wrap gap-2 justify-center">
-                          <Badge className={getStatusColor(audit.status)}>
+                          <Badge className={`${getStatusColor(audit.status)} rounded-md`}>
                             {audit.status.toLowerCase()}
                           </Badge>
                           <Badge 
                             style={{ backgroundColor: getLabelColor(audit.label), color: '#fff' }}
-                            className="text-xs font-semibold"
+                            className="text-xs font-semibold rounded-md"
                           >
                             {audit.label.toLowerCase()}
                           </Badge>
-                          <Badge className={getPriorityColor(audit.priority)}>
+                          <Badge className={`${getPriorityColor(audit.priority)} rounded-md`}>
                             {audit.priority.toLowerCase()} risk
                           </Badge>
                         </div>

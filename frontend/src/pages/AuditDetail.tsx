@@ -245,9 +245,7 @@ const saveStatusToDatabase = async (
       ),
       description: (
         <div className="text-sm">
-          <span className="font-medium">{findingTitle.substring(0, 30)}{findingTitle.length > 30 ? '...' : ''}</span>
-          <span> is now </span>
-          <span className="font-medium">{status.replace('_', ' ')}</span>
+          <span>{findingTitle.substring(0, 30)}{findingTitle.length > 30 ? '...' : ''} is now {status.replace('_', ' ')}</span>
         </div>
       ),
       variant: "default",

@@ -149,24 +149,25 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
   return (
     <div className="container mx-auto max-w-6xl py-8 px-4">
       {/* Header Section with Back Button */}
-      <div className="mb-4">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/dashboard')}
-          className="mb-4"
-        >
-          <ArrowBackIcon fontSize="small" style={{ marginRight: '4px' }} />
-          Back to Dashboard
-        </Button>
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight text-black">
-            {audit.model_type?.toLowerCase() === 'excel' ? 'Excel Audit Report' : 
-             audit.model_type?.toLowerCase() === 'word' ? 'Word Doc Audit' : 
-             'PowerPoint Deck Audit'}
-          </h1>
-          <Badge className={`px-3 py-1 text-sm font-bold ${getStatusColor(audit.status)}`}>
-            {audit?.status?.toLowerCase() || 'unknown'}
-          </Badge>
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight text-black">
+              {audit.model_type?.toLowerCase() === 'excel' ? 'Excel Audit Report' : 
+               audit.model_type?.toLowerCase() === 'word' ? 'Word Doc Audit' : 
+               'PowerPoint Deck Audit'}
+            </h1>
+            <Badge className={`px-3 py-1 text-sm font-bold ${getStatusColor(audit.status)}`}>
+              {audit?.status?.toLowerCase() || 'unknown'}
+            </Badge>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/dashboard')}
+          >
+            <ArrowBackIcon fontSize="small" style={{ marginRight: '4px' }} />
+            Back to Dashboard
+          </Button>
         </div>
       </div>
       

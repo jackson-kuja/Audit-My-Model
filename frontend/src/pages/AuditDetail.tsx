@@ -192,23 +192,23 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
             <CardTitle>File Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Filename</h3>
-              <p className="mt-1">{getFileName()}</p>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Filename:</h3>
+                <p className="text-sm">{getFileName()}</p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Uploaded:</h3>
+                <p className="text-sm">{formatDate(audit?.upload_timestamp || audit?.created_at)}</p>
+              </div>
+              
               {audit?.file_size_bytes && (
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Size</h3>
-                  <p className="mt-1">{(audit.file_size_bytes / (1024 * 1024)).toFixed(2)} MB</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">Size:</h3>
+                  <p className="text-sm">{(audit.file_size_bytes / (1024 * 1024)).toFixed(2)} MB</p>
                 </div>
               )}
-              
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Uploaded</h3>
-                <p className="mt-1">{formatDate(audit?.upload_timestamp || audit?.created_at)}</p>
-              </div>
             </div>
             
             {audit?.description && audit.description !== "Excel analysis with o3-mini using tools" && (

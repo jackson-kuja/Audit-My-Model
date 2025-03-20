@@ -40,7 +40,7 @@ const renderAuditResults = (results: AuditResult) => {
             <Badge 
               className={getPriorityColor(finding.severity)}
             >
-              {finding.severity.toLowerCase()}
+              {finding.severity.toLowerCase()} risk
             </Badge>
           </CardFooter>
         </Card>

@@ -93,8 +93,8 @@ const Header = () => {
             >
               {/* Add the logo image */}
               <img 
-                src="/logo.jpg" 
-                alt="Audit My Model Logo" 
+                src="/AuditMyFile.png" 
+                alt="Audit My File Logo" 
                 style={{ 
                   height: '24px', 
                   width: 'auto', 
@@ -240,8 +240,8 @@ const Header = () => {
                   }}
                 >
                   <img
-                    src="/logo.jpg"
-                    alt="Audit My Model Logo"
+                    src="/AuditMyFile.png"
+                    alt="Audit My File Logo"
                     style={{
                       height: '24px',
                       width: 'auto',

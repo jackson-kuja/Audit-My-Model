@@ -281,9 +281,17 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
   const [findingStatuses, setFindingStatuses] = useState<Record<string, FindingStatus>>({});
   const [statusesLoading, setStatusesLoading] = useState(true);
   
-  // Scroll to top when component mounts
+  // Scroll to top when component mounts, with a slight delay to ensure complete rendering
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Use setTimeout to ensure this runs after the component has fully rendered
+    const timer = setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'instant'
+      });
+    }, 50);
+    
+    return () => clearTimeout(timer);
   }, []);
   
   // Load saved statuses from database when component mounts
@@ -404,7 +412,7 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
   }
   
   return (
-    <div className="container mx-auto max-w-6xl py-8 px-4">
+    <div id="audit-detail-top" className="container mx-auto max-w-6xl py-8 px-4">
       {/* Header Section with Back Button */}
       <div className="mb-6">
         <div className="flex justify-between items-center">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/dateUtils';
 import { Audit, AuditResult } from '../types/index';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Unlock } from 'lucide-react';
 
 // Shadcn components
 import { Button } from '../components/ui/button';
@@ -192,23 +193,23 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
             <CardTitle>File Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-muted-foreground">Filename:</h3>
-                <p className="text-sm">{getFileName()}</p>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-muted-foreground">Uploaded:</h3>
-                <p className="text-sm">{formatDate(audit?.upload_timestamp || audit?.created_at)}</p>
-              </div>
-              
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Filename</h3>
+              <p className="mt-1">{getFileName()}</p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {audit?.file_size_bytes && (
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">Size:</h3>
-                  <p className="text-sm">{(audit.file_size_bytes / (1024 * 1024)).toFixed(2)} MB</p>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Size</h3>
+                  <p className="mt-1">{(audit.file_size_bytes / (1024 * 1024)).toFixed(2)} MB</p>
                 </div>
               )}
+              
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">Uploaded</h3>
+                <p className="mt-1">{formatDate(audit?.upload_timestamp || audit?.created_at)}</p>
+              </div>
             </div>
             
             {audit?.description && audit.description !== "Excel analysis with o3-mini using tools" && (
@@ -260,7 +261,10 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="findings">Detailed Findings</TabsTrigger>
+            <TabsTrigger value="findings">
+              <Unlock className="h-4 w-4 mr-2" />
+              Detailed Findings
+            </TabsTrigger>
             {audit.results.recommendations && (
               <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
             )}

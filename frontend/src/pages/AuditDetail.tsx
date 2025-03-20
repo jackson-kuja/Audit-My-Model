@@ -230,7 +230,7 @@ const saveStatusToDatabase = async (
     const findingIndex = parseInt(findingId.split('-')[1]);
     // Get the current audit and finding title
     const finding = audit?.results?.findings?.[findingIndex];
-    const findingTitle = finding?.title || 'Finding';
+    const findingTitle = finding?.title || 'Issue';
     
     // Get the appropriate color for the status
     const statusIconColor = getStatusIconColor(status);
@@ -251,7 +251,7 @@ const saveStatusToDatabase = async (
         </div>
       ),
       variant: "default",
-      duration: 3000, // Auto-dismiss after 3 seconds
+      duration: 1500, // Auto-dismiss after just 1.5 seconds
       className: "w-auto min-w-min max-w-sm", // Smaller container that fits content
     });
   } catch (error) {

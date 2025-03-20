@@ -827,19 +827,9 @@ const Upload: React.FC = () => {
                     onClick={() => handleFileTypeSelect('excel')}
                   >
                     <FileSpreadsheet className="h-16 w-16 mx-auto mb-4" style={{ color: '#0D7239' }} />
-                    <h3 className="text-lg font-medium">Excel Spreadsheet</h3>
+                    <h3 className="text-lg font-medium">Excel Model</h3>
                     <p className="text-sm text-muted-foreground mt-2">
                       Audit Excel files for formula errors, data issues, and structural problems
-                    </p>
-                  </div>
-                  <div 
-                    className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'word' ? 'border-primary bg-accent/50' : 'border-input'}`}
-                    onClick={() => handleFileTypeSelect('word')}
-                  >
-                    <FileText className="h-16 w-16 mx-auto mb-4" style={{ color: '#1A5CBD' }} />
-                    <h3 className="text-lg font-medium">Word Doc</h3>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Review Word docs for structure, clarity, readability, and formatting
                     </p>
                   </div>
                   <div 
@@ -850,6 +840,16 @@ const Upload: React.FC = () => {
                     <h3 className="text-lg font-medium">PowerPoint Deck</h3>
                     <p className="text-sm text-muted-foreground mt-2">
                       Review decks for design consistency, accessibility, and best practices
+                    </p>
+                  </div>
+                  <div 
+                    className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'word' ? 'border-primary bg-accent/50' : 'border-input'}`}
+                    onClick={() => handleFileTypeSelect('word')}
+                  >
+                    <FileText className="h-16 w-16 mx-auto mb-4" style={{ color: '#1A5CBD' }} />
+                    <h3 className="text-lg font-medium">Word Doc</h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Review Word docs for structure, clarity, readability, and formatting
                     </p>
                   </div>
                 </div>

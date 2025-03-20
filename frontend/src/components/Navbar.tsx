@@ -18,7 +18,7 @@ const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-10 w-full border-b bg-background">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container mx-auto px-4 max-w-7xl flex h-16 items-center justify-between">
         <div className="flex items-center gap-4">
           <Link 
             to={user ? '/dashboard' : '/'} 

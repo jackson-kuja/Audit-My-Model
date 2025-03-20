@@ -197,7 +197,8 @@ const saveStatusToDatabase = async (
   auditId: string,
   findingId: string, 
   status: FindingStatus, 
-  setFindingStatuses: React.Dispatch<React.SetStateAction<Record<string, FindingStatus>>>
+  setFindingStatuses: React.Dispatch<React.SetStateAction<Record<string, FindingStatus>>>,
+  audit: Audit | null
 ) => {
   // Update local state immediately for UI responsiveness
   setFindingStatuses(prev => ({
@@ -209,7 +210,13 @@ const saveStatusToDatabase = async (
     // Save to database
     await findingService.updateFindingStatus(auditId, findingId, status);
     
-    // Show single success toast
+    // Get the finding index from the findingId (format: finding-{index})
+    const findingIndex = parseInt(findingId.split('-')[1]);
+    // Get the current audit and finding title
+    const finding = audit?.results?.findings?.[findingIndex];
+    const findingTitle = finding?.title || 'Finding';
+    
+    // Show single success toast with more specific context and auto-dismiss
     toast({
       title: (
         <div className="flex items-center gap-2">
@@ -217,8 +224,16 @@ const saveStatusToDatabase = async (
           <span>Status Updated</span>
         </div>
       ),
-      description: `Finding is now ${status.replace('_', ' ')}`,
-      variant: "default"
+      description: (
+        <div className="text-sm">
+          <span className="font-medium">{findingTitle.substring(0, 30)}{findingTitle.length > 30 ? '...' : ''}</span>
+          <span> is now </span>
+          <span className="font-medium">{status.replace('_', ' ')}</span>
+        </div>
+      ),
+      variant: "default",
+      duration: 3000, // Auto-dismiss after 3 seconds
+      className: "w-auto min-w-min max-w-sm", // Smaller container that fits content
     });
   } catch (error) {
     console.error("Error updating finding status:", error);
@@ -232,7 +247,9 @@ const saveStatusToDatabase = async (
         </div>
       ),
       description: "Could not update finding status. Please try again.",
-      variant: "destructive"
+      variant: "destructive",
+      duration: 4000, // Error stays a bit longer
+      className: "w-auto min-w-min max-w-sm", // Smaller container
     });
     
     // Revert the local state change
@@ -270,7 +287,7 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
   // Handle status update with database persistence
   const handleStatusUpdate = (findingId: string, status: FindingStatus) => {
     if (!auditId) return;
-    saveStatusToDatabase(auditId, findingId, status, setFindingStatuses);
+    saveStatusToDatabase(auditId, findingId, status, setFindingStatuses, audit);
   };
   
   // Get name for Excel file

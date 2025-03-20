@@ -155,46 +155,46 @@ const Profile: React.FC = () => {
 
   return (
     <div className="container mx-auto max-w-6xl py-8 px-4">
-      <Box sx={{ my: 4 }}>
-        <Grid container spacing={4}>
-          {/* Settings Navigation */}
-          <Grid item xs={12} md={3}>
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Settings</h1>
-            <p className="text-muted-foreground mb-4">
-              Manage your account preferences
-            </p>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {settingsNavItems.map((item) => (
-                <Button
-                  key={item.id}
-                  variant={activeTab === item.id ? "default" : "outline"}
-                  className="justify-start"
-                  onClick={() => setActiveTab(item.id)}
-                >
-                  {item.title}
-                </Button>
-              ))}
-              <Separator className="my-2" />
+      <Grid container spacing={4}>
+        {/* Settings Navigation */}
+        <Grid item xs={12} md={3}>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Settings</h1>
+          <p className="text-muted-foreground mb-4">
+            Manage your account preferences
+          </p>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {settingsNavItems.map((item) => (
               <Button
-                variant="outline"
-                className="justify-start text-red-500 hover:text-red-700 hover:bg-red-50"
-                onClick={handleLogout}
+                key={item.id}
+                variant={activeTab === item.id ? "default" : "outline"}
+                className="justify-start"
+                onClick={() => setActiveTab(item.id)}
               >
-                Logout
+                {item.title}
               </Button>
-            </Box>
-          </Grid>
-          
-          {/* Content Area */}
-          <Grid item xs={12} md={9}>
+            ))}
+            <Separator className="my-2" />
+            <Button
+              variant="outline"
+              className="justify-start text-red-500 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </Box>
+        </Grid>
+        
+        {/* Content Area */}
+        <Grid item xs={12} md={9}>
+          <div className="mt-0">
             {activeTab === "profile" && <ProfileSection user={user} />}
             {activeTab === "password" && <PasswordSection user={user} />}
             {activeTab === "notifications" && <NotificationsSection user={user} />} 
             {activeTab === "subscription" && <SubscriptionSection user={user} />}
             {activeTab === "danger" && <DangerZoneSection user={user} />}
-          </Grid>
+          </div>
         </Grid>
-      </Box>
+      </Grid>
     </div>
   );
 };
@@ -246,7 +246,7 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="mt-0">
         <h3 className="text-lg font-medium">Profile Information</h3>
         <p className="text-sm text-muted-foreground">
           This information will be displayed publicly so be careful what you share.
@@ -358,7 +358,7 @@ const PasswordSection: React.FC<{ user: User }> = ({ user }) => {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="mt-0">
         <h3 className="text-lg font-medium">Change Password</h3>
         <p className="text-sm text-muted-foreground">
           Update your password to keep your account secure.
@@ -458,7 +458,7 @@ const NotificationsSection: React.FC<{ user: User }> = ({ user }) => {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="mt-0">
         <h3 className="text-lg font-medium">Notifications</h3>
         <p className="text-sm text-muted-foreground">
           Configure how you receive notifications.
@@ -604,7 +604,7 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="mt-0">
         <h3 className="text-lg font-medium">Subscription Settings</h3>
         <p className="text-sm text-muted-foreground">
           Select your user tier to manage API usage.
@@ -755,7 +755,7 @@ const DangerZoneSection: React.FC<{ user: User }> = ({ user }) => {
   
   return (
     <div className="space-y-6">
-      <div>
+      <div className="mt-0">
         <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
         <p className="text-sm text-muted-foreground">
           Permanently delete your account and all of your content.

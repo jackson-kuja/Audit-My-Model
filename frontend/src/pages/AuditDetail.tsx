@@ -237,36 +237,32 @@ const saveStatusToDatabase = async (
     
     // Show single success toast with more specific context and auto-dismiss
     toast({
-      title: (
-        <div className="flex items-center gap-2">
-          <CheckCircle className={`h-4 w-4 ${statusIconColor}`} />
-          <span>Status Updated</span>
-        </div>
-      ),
       description: (
-        <div className="text-sm">
-          <span>{findingTitle.substring(0, 30)}{findingTitle.length > 30 ? '...' : ''} is now {status.replace('_', ' ')}</span>
+        <div className="flex items-center space-x-2 py-1">
+          <CheckCircle className={`h-4 w-4 ${statusIconColor}`} />
+          <span className="text-sm font-medium">
+            {findingTitle.substring(0, 20)}{findingTitle.length > 20 ? '...' : ''} is now {status.replace('_', ' ')}
+          </span>
         </div>
       ),
       variant: "default",
       duration: 1500, // Auto-dismiss after just 1.5 seconds
-      className: "w-auto min-w-min max-w-sm", // Smaller container that fits content
+      className: "top-toast w-auto min-w-min py-2 px-3", // Compact container for navbar placement
     });
   } catch (error) {
     console.error("Error updating finding status:", error);
     
     // Show error toast with alert icon
     toast({
-      title: (
-        <div className="flex items-center gap-2">
+      description: (
+        <div className="flex items-center space-x-2 py-1">
           <AlertCircle className="h-4 w-4 text-destructive" />
-          <span>Update Failed</span>
+          <span className="text-sm font-medium">Failed to update status</span>
         </div>
       ),
-      description: "Could not update finding status. Please try again.",
       variant: "destructive",
-      duration: 4000, // Error stays a bit longer
-      className: "w-auto min-w-min max-w-sm", // Smaller container
+      duration: 3000, // Error stays a bit longer
+      className: "top-toast w-auto min-w-min py-2 px-3", // Compact container for navbar placement
     });
     
     // Revert the local state change

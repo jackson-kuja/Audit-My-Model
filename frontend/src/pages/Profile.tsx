@@ -155,47 +155,46 @@ const Profile: React.FC = () => {
 
   return (
     <div className="container mx-auto max-w-6xl py-8 px-4">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back, {user?.email?.split('@')[0] || 'User'}
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        {/* Settings Tabs/Navigation */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {settingsNavItems.map((item) => (
-            <Button
-              key={item.id}
-              variant={activeTab === item.id ? "default" : "outline"}
-              className="justify-start"
-              onClick={() => setActiveTab(item.id)}
-            >
-              {item.title}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            className="justify-start text-red-500 hover:text-red-700 hover:bg-red-50 ml-auto"
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
-        </div>
-
-        {/* Content Area */}
-        <div className="bg-card rounded-lg border shadow-sm p-6">
-          {activeTab === "profile" && <ProfileSection user={user} />}
-          {activeTab === "password" && <PasswordSection user={user} />}
-          {activeTab === "notifications" && <NotificationsSection user={user} />} 
-          {activeTab === "subscription" && <SubscriptionSection user={user} />}
-          {activeTab === "danger" && <DangerZoneSection user={user} />}
-        </div>
-      </div>
+      <Box sx={{ my: 4 }}>
+        <Grid container spacing={4}>
+          {/* Settings Navigation */}
+          <Grid item xs={12} md={3}>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">Settings</h1>
+            <p className="text-muted-foreground mb-4">
+              Manage your account preferences
+            </p>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {settingsNavItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant={activeTab === item.id ? "default" : "outline"}
+                  className="justify-start"
+                  onClick={() => setActiveTab(item.id)}
+                >
+                  {item.title}
+                </Button>
+              ))}
+              <Separator className="my-2" />
+              <Button
+                variant="outline"
+                className="justify-start text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </Box>
+          </Grid>
+          
+          {/* Content Area */}
+          <Grid item xs={12} md={9}>
+            {activeTab === "profile" && <ProfileSection user={user} />}
+            {activeTab === "password" && <PasswordSection user={user} />}
+            {activeTab === "notifications" && <NotificationsSection user={user} />} 
+            {activeTab === "subscription" && <SubscriptionSection user={user} />}
+            {activeTab === "danger" && <DangerZoneSection user={user} />}
+          </Grid>
+        </Grid>
+      </Box>
     </div>
   );
 };

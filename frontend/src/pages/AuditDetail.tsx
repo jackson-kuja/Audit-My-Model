@@ -246,7 +246,7 @@ const saveStatusToDatabase = async (
         </div>
       ),
       variant: "default",
-      duration: 1500, // Auto-dismiss after just 1.5 seconds
+      duration: 2500, // Auto-dismiss after 2.5 seconds
       className: "top-toast w-auto min-w-min py-2 px-3", // Compact container for navbar placement
     });
   } catch (error) {
@@ -261,7 +261,7 @@ const saveStatusToDatabase = async (
         </div>
       ),
       variant: "destructive",
-      duration: 3000, // Error stays a bit longer
+      duration: 4000, // Error stays longer
       className: "top-toast w-auto min-w-min py-2 px-3", // Compact container for navbar placement
     });
     

@@ -2,7 +2,7 @@
 
 /* Top notification toast */
 .top-toast {
-  animation: slideInFromTop 0.3s ease-out, fadeOut 0.3s ease-in 1.2s forwards !important;
+  animation: slideInFromTop 0.3s ease-out, fadeOut 0.3s ease-in 2.2s forwards !important;
   position: relative !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;

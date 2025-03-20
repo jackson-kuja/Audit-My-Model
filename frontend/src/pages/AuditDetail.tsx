@@ -238,7 +238,7 @@ const saveStatusToDatabase = async (
     // Show single success toast with more specific context and auto-dismiss
     toast({
       description: (
-        <div className="flex items-center space-x-2 py-1">
+        <div className="flex items-center space-x-2 py-0">
           <CheckCircle className={`h-4 w-4 ${statusIconColor}`} />
           <span className="text-sm font-medium">
             {findingTitle.substring(0, 20)}{findingTitle.length > 20 ? '...' : ''} is now {status.replace('_', ' ')}
@@ -247,7 +247,7 @@ const saveStatusToDatabase = async (
       ),
       variant: "default",
       duration: 2500, // Auto-dismiss after 2.5 seconds
-      className: "top-toast w-auto min-w-min py-2 px-3", // Compact container for navbar placement
+      className: "top-toast w-auto min-w-min py-1 px-3", // More compact container
     });
   } catch (error) {
     console.error("Error updating finding status:", error);
@@ -255,14 +255,14 @@ const saveStatusToDatabase = async (
     // Show error toast with alert icon
     toast({
       description: (
-        <div className="flex items-center space-x-2 py-1">
+        <div className="flex items-center space-x-2 py-0">
           <AlertCircle className="h-4 w-4 text-destructive" />
           <span className="text-sm font-medium">Failed to update status</span>
         </div>
       ),
       variant: "destructive",
       duration: 4000, // Error stays longer
-      className: "top-toast w-auto min-w-min py-2 px-3", // Compact container for navbar placement
+      className: "top-toast w-auto min-w-min py-1 px-3", // More compact container
     });
     
     // Revert the local state change

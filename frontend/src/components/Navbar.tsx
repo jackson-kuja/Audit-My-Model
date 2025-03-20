@@ -24,7 +24,12 @@ const Navbar: React.FC = () => {
             to={user ? '/dashboard' : '/'} 
             className="flex items-center space-x-2 font-bold text-xl"
           >
-            <span className="hidden sm:inline-block">Audit My Model</span>
+            <img 
+              src="/AuditMyFile.png" 
+              alt="Audit My File Logo" 
+              className="h-6 w-auto"
+            />
+            <span className="hidden sm:inline-block">Audit My File</span>
           </Link>
         </div>
         

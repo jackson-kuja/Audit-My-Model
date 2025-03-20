@@ -214,7 +214,7 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
             {audit?.description && audit.description !== "Excel analysis with o3-mini using tools" && (
               <div>
                 <Separator className="my-2" />
-                <h3 className="text-sm font-medium text-muted-foreground mt-2">Analysis Options</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mt-2">Analysis Queries</h3>
                 {(() => {
                   try {
                     // The description might be a JSON string that's already stringified

@@ -94,20 +94,29 @@ const Dashboard: React.FC = () => {
   // Filter tasks based on active tab
   const filteredTasks = React.useMemo(() => {
     if (activeTab === "all") return tasks;
-    if (activeTab === "completed") return tasks.filter(task => task.status === "completed");
-    if (activeTab === "inprogress") return tasks.filter(task => task.status === "in progress" || task.status === "processing");
-    if (activeTab === "pending") return tasks.filter(task => task.status === "pending" || task.status === "todo");
+    if (activeTab === "models") return tasks.filter(task => task.label === "model");
+    if (activeTab === "decks") return tasks.filter(task => task.label === "deck");
+    if (activeTab === "docs") return tasks.filter(task => task.label === "doc");
     return tasks;
   }, [tasks, activeTab]);
 
   // Get recent audits for stats card
   const recentAudits = tasks.slice(0, 3);
 
-  // Inside the Dashboard component (after its declaration and after audits state is available)
+  // Get audits by type for filtering
   const allAudits = tasks;
-  const completedAudits = tasks.filter(audit => audit.status === 'completed');
-  const inProgressAudits = tasks.filter(audit => audit.status === 'in progress' || audit.status === 'processing');
-  const pendingAudits = tasks.filter(audit => audit.status === 'pending' || audit.status === 'todo');
+  const modelAudits = tasks.filter(audit => audit.label === 'model');
+  const deckAudits = tasks.filter(audit => audit.label === 'deck');
+  const docAudits = tasks.filter(audit => audit.label === 'doc');
+  
+  // Determine if we should show type filters (only if more than one type exists)
+  const fileTypes = [
+    { type: 'model', count: modelAudits.length },
+    { type: 'deck', count: deckAudits.length },
+    { type: 'doc', count: docAudits.length }
+  ].filter(typeObj => typeObj.count > 0);
+  
+  const shouldShowTypeFilters = fileTypes.length > 1;
 
   return (
     <div className="container mx-auto max-w-6xl py-8 px-4">
@@ -280,14 +289,16 @@ const Dashboard: React.FC = () => {
 
           {/* Audit Table Section with Tabs */}
           <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex justify-between items-center mb-4">
-              <TabsList>
-                {allAudits.length > 0 && <TabsTrigger value="all">All Audits</TabsTrigger>}
-                {completedAudits.length > 0 && <TabsTrigger value="completed">Completed</TabsTrigger>}
-                {inProgressAudits.length > 0 && <TabsTrigger value="inprogress">In Progress</TabsTrigger>}
-                {pendingAudits.length > 0 && <TabsTrigger value="pending">Pending</TabsTrigger>}
-              </TabsList>
-            </div>
+            {shouldShowTypeFilters && (
+              <div className="flex justify-between items-center mb-4">
+                <TabsList>
+                  <TabsTrigger value="all">All Audits</TabsTrigger>
+                  {modelAudits.length > 0 && <TabsTrigger value="models">Models</TabsTrigger>}
+                  {deckAudits.length > 0 && <TabsTrigger value="decks">Decks</TabsTrigger>}
+                  {docAudits.length > 0 && <TabsTrigger value="docs">Docs</TabsTrigger>}
+                </TabsList>
+              </div>
+            )}
             
             <TabsContent value="all" className="space-y-4">
               <DataTable 
@@ -297,7 +308,7 @@ const Dashboard: React.FC = () => {
               />
             </TabsContent>
             
-            <TabsContent value="completed" className="space-y-4">
+            <TabsContent value="models" className="space-y-4">
               <DataTable 
                 data={filteredTasks} 
                 columns={columns} 
@@ -305,7 +316,7 @@ const Dashboard: React.FC = () => {
               />
             </TabsContent>
             
-            <TabsContent value="inprogress" className="space-y-4">
+            <TabsContent value="decks" className="space-y-4">
               <DataTable 
                 data={filteredTasks} 
                 columns={columns} 
@@ -313,7 +324,7 @@ const Dashboard: React.FC = () => {
               />
             </TabsContent>
             
-            <TabsContent value="pending" className="space-y-4">
+            <TabsContent value="docs" className="space-y-4">
               <DataTable 
                 data={filteredTasks} 
                 columns={columns} 

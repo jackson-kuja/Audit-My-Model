@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { formatDate } from '../utils/dateUtils';
 import { Audit, AuditResult } from '../types/index';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Unlock, Check, Clock, X, AlertCircle, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { motion, LayoutGroup } from "framer-motion";
+import findingService from '../services/findingService';
 
 // Shadcn components
 import { Button } from '../components/ui/button';
@@ -191,24 +192,80 @@ const FindingsList: React.FC<FindingsListProps> = ({ results, findingStatuses, u
   );
 };
 
-const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
-  const navigate = useNavigate();
-  // Lift the state up to this component
-  const [findingStatuses, setFindingStatuses] = useState<Record<string, FindingStatus>>({});
-  
-  // Function to update finding status
-  const updateFindingStatus = (findingId: string, status: FindingStatus) => {
-    // Update local state
-    setFindingStatuses(prev => ({
-      ...prev,
-      [findingId]: status
-    }));
+// Import the updateFindingStatus function
+const saveStatusToDatabase = async (
+  auditId: string,
+  findingId: string, 
+  status: FindingStatus, 
+  setFindingStatuses: React.Dispatch<React.SetStateAction<Record<string, FindingStatus>>>
+) => {
+  // Update local state immediately for UI responsiveness
+  setFindingStatuses(prev => ({
+    ...prev,
+    [findingId]: status
+  }));
 
-    // Show a toast
+  // Show loading toast
+  toast({
+    title: "Updating status...",
+    description: "Saving changes to the database"
+  });
+
+  try {
+    // Save to database
+    await findingService.updateFindingStatus(auditId, findingId, status);
+    
+    // Show success toast
     toast({
       title: "Status updated",
       description: `Finding status changed to ${status.replace('_', ' ')}`
     });
+  } catch (error) {
+    console.error("Error updating finding status:", error);
+    
+    // Show error toast
+    toast({
+      title: "Update failed",
+      description: "Could not update finding status. Please try again.",
+      variant: "destructive"
+    });
+    
+    // Revert the local state change
+    setFindingStatuses(prev => {
+      const newState = { ...prev };
+      delete newState[findingId]; // Remove the failed update
+      return newState;
+    });
+  }
+};
+
+const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
+  const navigate = useNavigate();
+  const { id: auditId } = useParams<{ id: string }>(); // Get audit ID from URL
+  // Lift the state up to this component
+  const [findingStatuses, setFindingStatuses] = useState<Record<string, FindingStatus>>({});
+  const [statusesLoading, setStatusesLoading] = useState(true);
+  
+  // Load saved statuses from database when component mounts
+  useEffect(() => {
+    if (audit && auditId) {
+      setStatusesLoading(true);
+      findingService.getFindingStatuses(auditId)
+        .then(savedStatuses => {
+          setFindingStatuses(savedStatuses);
+          setStatusesLoading(false);
+        })
+        .catch(err => {
+          console.error("Error loading finding statuses:", err);
+          setStatusesLoading(false);
+        });
+    }
+  }, [audit, auditId]);
+  
+  // Handle status update with database persistence
+  const handleStatusUpdate = (findingId: string, status: FindingStatus) => {
+    if (!auditId) return;
+    saveStatusToDatabase(auditId, findingId, status, setFindingStatuses);
   };
   
   // Get name for Excel file
@@ -439,11 +496,17 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
               <CardTitle>Identified Issues</CardTitle>
             </CardHeader>
             <CardContent>
-              <FindingsList 
-                results={audit.results} 
-                findingStatuses={findingStatuses} 
-                updateFindingStatus={updateFindingStatus}
-              />
+              {statusesLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <FindingsList 
+                  results={audit.results} 
+                  findingStatuses={findingStatuses} 
+                  updateFindingStatus={handleStatusUpdate}
+                />
+              )}
             </CardContent>
           </Card>
         </div>

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/dateUtils';
 import { Audit, AuditResult } from '../types/index';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Unlock } from 'lucide-react';
+import { Unlock, Check, Clock, X, AlertCircle } from 'lucide-react';
 
 // Shadcn components
 import { Button } from '../components/ui/button';
@@ -12,10 +12,20 @@ import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { toast } from "../hooks/use-toast";
 import {
   getStatusColor,
   getPriorityColor
 } from '../utils/colorTheme';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+
+// Define finding status type
+type FindingStatus = 'open' | 'in_progress' | 'resolved' | 'ignored';
 
 interface AuditDetailProps {
   audit: Audit | null;
@@ -26,25 +36,124 @@ interface AuditDetailProps {
 const renderAuditResults = (results: AuditResult) => {
   if (!results) return null;
 
+  // In a real implementation, this would be fetched from or synced with the backend
+  const [findingStatuses, setFindingStatuses] = useState<Record<string, FindingStatus>>({});
+
+  // Function to update finding status
+  const updateFindingStatus = (findingId: string, status: FindingStatus) => {
+    // Update local state
+    setFindingStatuses(prev => ({
+      ...prev,
+      [findingId]: status
+    }));
+
+    // In a real implementation, this would send the update to the backend
+    // Example of what that might look like:
+    /*
+    api.post(`/audits/${auditId}/findings/${findingId}/status`, { status })
+      .then(() => {
+        toast({
+          title: "Status updated",
+          description: `Finding status set to ${status.replace('_', ' ')}`
+        });
+      })
+      .catch(err => {
+        toast({
+          title: "Update failed",
+          description: "Could not update finding status",
+          variant: "destructive"
+        });
+        console.error(err);
+      });
+    */
+
+    // For now, just show a toast
+    toast({
+      title: "Status updated",
+      description: `Finding status changed to ${status.replace('_', ' ')}`
+    });
+  };
+
+  // Helper function to get status icon
+  const getStatusIcon = (status: FindingStatus) => {
+    switch (status) {
+      case 'resolved':
+        return <Check className="h-4 w-4 mr-1" />;
+      case 'in_progress':
+        return <Clock className="h-4 w-4 mr-1" />;
+      case 'ignored':
+        return <X className="h-4 w-4 mr-1" />;
+      default:
+        return <AlertCircle className="h-4 w-4 mr-1" />;
+    }
+  };
+
+  // Helper function to get status badge style
+  const getStatusBadgeClass = (status: FindingStatus) => {
+    switch (status) {
+      case 'resolved':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case 'ignored':
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      default:
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {results.findings?.map((finding, index) => (
-        <Card key={index}>
-          <CardHeader>
-            <CardTitle>{finding.title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-700">{finding.description}</p>
-          </CardContent>
-          <CardFooter>
-            <Badge 
-              className={getPriorityColor(finding.severity)}
-            >
-              {finding.severity.toLowerCase()} risk
-            </Badge>
-          </CardFooter>
-        </Card>
-      ))}
+      {results.findings?.map((finding, index) => {
+        const findingId = `finding-${index}`;
+        const status = findingStatuses[findingId] || 'open';
+        
+        return (
+          <Card key={index}>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <CardTitle>{finding.title}</CardTitle>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className={`text-xs px-2 py-1 ${getStatusBadgeClass(status)}`}
+                    >
+                      {getStatusIcon(status)}
+                      {status.replace('_', ' ')}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => updateFindingStatus(findingId, 'open')}>
+                      <AlertCircle className="h-4 w-4 mr-2" /> Open
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => updateFindingStatus(findingId, 'in_progress')}>
+                      <Clock className="h-4 w-4 mr-2" /> In Progress
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => updateFindingStatus(findingId, 'resolved')}>
+                      <Check className="h-4 w-4 mr-2" /> Resolved
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => updateFindingStatus(findingId, 'ignored')}>
+                      <X className="h-4 w-4 mr-2" /> Ignored
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-700">{finding.description}</p>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Badge 
+                className={getPriorityColor(finding.severity)}
+              >
+                {finding.severity.toLowerCase()} risk
+              </Badge>
+            </CardFooter>
+          </Card>
+        );
+      })}
     </div>
   );
 };

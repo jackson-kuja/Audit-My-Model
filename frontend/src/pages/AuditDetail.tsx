@@ -192,6 +192,22 @@ const FindingsList: React.FC<FindingsListProps> = ({ results, findingStatuses, u
   );
 };
 
+// Helper function to get status color for toast icon
+const getStatusIconColor = (status: FindingStatus): string => {
+  switch (status) {
+    case 'resolved':
+      return 'text-green-500';
+    case 'in_progress':
+      return 'text-blue-500';
+    case 'open':
+      return 'text-yellow-500';
+    case 'ignored':
+      return 'text-gray-400';
+    default:
+      return 'text-green-500';
+  }
+};
+
 // Update the saveStatusToDatabase function to use a single toast notification
 const saveStatusToDatabase = async (
   auditId: string,
@@ -216,11 +232,14 @@ const saveStatusToDatabase = async (
     const finding = audit?.results?.findings?.[findingIndex];
     const findingTitle = finding?.title || 'Finding';
     
+    // Get the appropriate color for the status
+    const statusIconColor = getStatusIconColor(status);
+    
     // Show single success toast with more specific context and auto-dismiss
     toast({
       title: (
         <div className="flex items-center gap-2">
-          <CheckCircle className="h-4 w-4 text-green-500" />
+          <CheckCircle className={`h-4 w-4 ${statusIconColor}`} />
           <span>Status Updated</span>
         </div>
       ),

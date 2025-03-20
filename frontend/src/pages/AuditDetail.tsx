@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { formatDate } from '../utils/dateUtils';
 import { Audit, AuditResult } from '../types/index';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Unlock, Check, Clock, X, AlertCircle, ChevronDown } from 'lucide-react';
+import { Unlock, Check, Clock, X, AlertCircle, ChevronDown, CheckCircle } from 'lucide-react';
 import { motion, LayoutGroup } from "framer-motion";
 import findingService from '../services/findingService';
 
@@ -192,7 +192,7 @@ const FindingsList: React.FC<FindingsListProps> = ({ results, findingStatuses, u
   );
 };
 
-// Import the updateFindingStatus function
+// Update the saveStatusToDatabase function to use a single toast notification
 const saveStatusToDatabase = async (
   auditId: string,
   findingId: string, 
@@ -205,27 +205,32 @@ const saveStatusToDatabase = async (
     [findingId]: status
   }));
 
-  // Show loading toast
-  toast({
-    title: "Updating status...",
-    description: "Saving changes to the database"
-  });
-
   try {
     // Save to database
     await findingService.updateFindingStatus(auditId, findingId, status);
     
-    // Show success toast
+    // Show single success toast
     toast({
-      title: "Status updated",
-      description: `Finding status changed to ${status.replace('_', ' ')}`
+      title: (
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 text-green-500" />
+          <span>Status Updated</span>
+        </div>
+      ),
+      description: `Finding is now ${status.replace('_', ' ')}`,
+      variant: "default"
     });
   } catch (error) {
     console.error("Error updating finding status:", error);
     
-    // Show error toast
+    // Show error toast with alert icon
     toast({
-      title: "Update failed",
+      title: (
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <span>Update Failed</span>
+        </div>
+      ),
       description: "Could not update finding status. Please try again.",
       variant: "destructive"
     });

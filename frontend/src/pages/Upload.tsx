@@ -774,10 +774,13 @@ const Upload: React.FC = () => {
           {/* Header Section */}
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold tracking-tight mb-2">
-              {fileType === 'excel' ? 'Audit My Model' : 
-              fileType === 'powerpoint' ? 'Audit My Deck' : 
-              fileType === 'word' ? 'Audit My Document' :
-              'Audit My File'}
+              {fileType === 'excel' 
+                ? 'Audit My File'
+                : fileType === 'word' 
+                  ? 'Audit My Doc'
+                  : fileType === 'powerpoint' 
+                    ? 'Audit My Deck' 
+                    : 'Analyze'}
             </h1>
             <p className="text-muted-foreground">
               Get insights into potential issues, risks, and improvements for your files.
@@ -796,10 +799,13 @@ const Upload: React.FC = () => {
           {/* Header Section */}
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold tracking-tight mb-2">
-              {fileType === 'excel' ? 'Audit My Model' : 
-              fileType === 'powerpoint' ? 'Audit My Deck' : 
-              fileType === 'word' ? 'Audit My Document' :
-              'Audit My File'}
+              {fileType === 'excel' 
+                ? 'Audit My File'
+                : fileType === 'word' 
+                  ? 'Audit My Doc'
+                  : fileType === 'powerpoint' 
+                    ? 'Audit My Deck' 
+                    : 'Analyze'}
             </h1>
             <p className="text-muted-foreground">
               Get insights into potential issues, risks, and improvements for your files.

@@ -112,7 +112,7 @@ const Header = () => {
                   mr: 0.25
                 }}
               >
-                AuditMyModel
+                Audit My File
               </Typography>
               <Box 
                 sx={{ 

@@ -287,7 +287,7 @@ const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
     const timer = setTimeout(() => {
       window.scrollTo({
         top: 0,
-        behavior: 'instant'
+        behavior: 'auto'
       });
     }, 50);
     

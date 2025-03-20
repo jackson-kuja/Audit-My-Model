@@ -154,7 +154,7 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="xl">
+    <div className="container mx-auto max-w-6xl py-8 px-4">
       <Box sx={{ my: 4 }}>
         <Grid container spacing={4}>
           {/* Settings Navigation */}
@@ -194,7 +194,7 @@ const Profile: React.FC = () => {
           </Grid>
         </Grid>
       </Box>
-    </Container>
+    </div>
   );
 };
 

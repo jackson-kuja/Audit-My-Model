@@ -7,13 +7,17 @@ export interface User {
   last_name?: string;
   preferred_email?: string;
   is_paid?: boolean;
+  user_tier?: 'free' | 'paid';
   subscription_status?: string;
   subscription_end_date?: string;
+  stripe_customer_id?: string;
   user_metadata?: {
     name?: string;
     avatar_url?: string;
+    user_tier?: 'free' | 'paid';
   };
   app_metadata?: any;
+  aud?: string;
 }
 
 export interface Audit {

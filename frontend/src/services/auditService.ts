@@ -12,40 +12,68 @@ export interface CreateAuditData {
 const auditService = {
   async getAudits(): Promise<Audit[]> {
     console.log('[Frontend] Getting all audits');
-    const { data, error } = await supabase
-      .from('audits')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      // Log user authentication status
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('[Frontend] Error getting user:', userError);
+        throw userError;
+      }
+      
+      if (!userData?.user?.id) {
+        console.error('[Frontend] No authenticated user found');
+        return [];
+      }
+      
+      const userId = userData.user.id;
+      console.log('[Frontend] Fetching audits for user:', userId);
+      
+      // Get audits with more detailed logging and filter by user_id
+      const { data, error } = await supabase
+        .from('audits')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-    if (error) {
+      if (error) {
+        console.error('[Frontend] Error fetching audits:', error);
+        throw error;
+      }
+
+      console.log(`[Frontend] Retrieved ${data?.length || 0} audits for user ${userId}`, data);
+      
+      // If no data but no error, return empty array with warning
+      if (!data || data.length === 0) {
+        console.warn('[Frontend] No audits found for user');
+        return [];
+      }
+
+      // Transform database objects to match our Audit type
+      return (data || []).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        name: item.name || item.model_name || '',
+        model_name: item.model_name,
+        model_type: item.model_type,
+        description: item.description,
+        file_path: item.file_path,
+        audit_type: item.audit_type,
+        results: item.results,
+        original_filename: item.original_filename,
+        status: mapStatus(item.status),
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        completed_at: item.completed_at,
+        risk_score: (item.score || item.risk_score || 0) as number,
+        score: (item.score || 0) as number,
+        summary: item.summary,
+        audit_result: item.audit_result,
+        error_message: item.error_message
+      }));
+    } catch (error) {
       console.error('[Frontend] Error fetching audits:', error);
       throw error;
     }
-
-    console.log(`[Frontend] Retrieved ${data?.length || 0} audits`);
-
-    // Transform database objects to match our Audit type
-    return (data || []).map(item => ({
-      id: item.id,
-      user_id: item.user_id,
-      name: item.name || item.model_name || '',
-      model_name: item.model_name,
-      model_type: item.model_type,
-      description: item.description,
-      file_path: item.file_path,
-      audit_type: item.audit_type,
-      results: item.results,
-      original_filename: item.original_filename,
-      status: mapStatus(item.status),
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      completed_at: item.completed_at,
-      risk_score: (item.score || item.risk_score || 0) as number,
-      score: (item.score || 0) as number,
-      summary: item.summary,
-      audit_result: item.audit_result,
-      error_message: item.error_message
-    }));
   },
 
   async getAuditById(id: string): Promise<Audit> {

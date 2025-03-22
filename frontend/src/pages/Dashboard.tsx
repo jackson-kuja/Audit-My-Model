@@ -103,7 +103,9 @@ const Dashboard: React.FC = () => {
     const fetchAudits = async () => {
       try {
         setIsLoading(true);
+        console.log('[Dashboard] Fetching audits for user:', user?.id);
         const audits = await auditService.getAudits();
+        console.log('[Dashboard] Audits received:', audits);
         
         // Convert audits to the format expected by the DataTable
         const formattedTasks = convertAuditsToTasks(audits, isUserPaid);
@@ -111,13 +113,32 @@ const Dashboard: React.FC = () => {
         setRecentAudits(formattedTasks.slice(0, 3));
         setIsLoading(false);
       } catch (err) {
-        console.error('Error fetching audits:', err);
+        console.error('[Dashboard] Error fetching audits:', err);
         setIsLoading(false);
+        // Set empty arrays so UI doesn't stay in loading state forever
+        setTasks([]);
+        setRecentAudits([]);
       }
     };
 
-    fetchAudits();
-  }, [isUserPaid]);
+    if (user && user.id) {
+      console.log('[Dashboard] User authenticated, fetching audits');
+      fetchAudits();
+    } else {
+      console.log('[Dashboard] No user ID available yet, waiting...');
+      // Set a short timeout to check again if user might be loading
+      const timer = setTimeout(() => {
+        if (user && user.id) {
+          console.log('[Dashboard] User loaded after delay, fetching audits');
+          fetchAudits();
+        } else {
+          console.log('[Dashboard] Still no user after delay');
+          setIsLoading(false); // Stop loading spinner if no user after delay
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, isUserPaid]);
 
   // Handle clicking on an audit card
   const handleAuditClick = (id: string) => {

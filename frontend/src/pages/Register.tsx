@@ -1,21 +1,27 @@
-import React from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { cn } from "../lib/utils";
 import { UserAuthForm } from '../components/user-auth-form';
 import { Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { AuthRedirect } from '../components/AuthRedirect';
+import { useAuth } from '../context/AuthContext';
 
 const Register: React.FC = () => {
   const theme = useTheme();
   usePageTitle('Register');
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // If user is already authenticated, navigate to dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
 
   return (
     <div className="w-full h-screen">
-      {/* Add AuthRedirect component to handle redirects */}
-      <AuthRedirect />
-      
       <div className="container relative hidden h-full flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
         <RouterLink
           to="/login"
@@ -72,64 +78,80 @@ const Register: React.FC = () => {
               </svg>
               Audit My File
             </div>
-            <UserAuthForm isRegister={true} />
-            <p className="px-8 text-center text-sm text-muted-foreground">
-              By clicking continue, you agree to our{" "}
-              <RouterLink
-                to="/terms"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                Terms of Service
-              </RouterLink>{" "}
-              and{" "}
-              <RouterLink
-                to="/privacy"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                Privacy Policy
-              </RouterLink>
-              .
-            </p>
+            {!loading && user ? (
+              <div className="text-center">
+                <p className="text-blue-600">You are already logged in, redirecting to dashboard...</p>
+              </div>
+            ) : (
+              <>
+                <UserAuthForm isRegister={true} />
+                <p className="px-8 text-center text-sm text-muted-foreground">
+                  By clicking continue, you agree to our{" "}
+                  <RouterLink
+                    to="/terms"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    Terms of Service
+                  </RouterLink>{" "}
+                  and{" "}
+                  <RouterLink
+                    to="/privacy"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    Privacy Policy
+                  </RouterLink>
+                  .
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
       {/* Mobile view */}
       <div className="md:hidden h-full w-full p-4 flex flex-col items-center justify-center">
         <div className="w-full max-w-md space-y-6">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Create an account
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your email below to create your account
-            </p>
-          </div>
-          <UserAuthForm isRegister={true} />
-          <p className="px-8 text-center text-sm text-muted-foreground">
-            By clicking continue, you agree to our{" "}
-            <RouterLink
-              to="/terms"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Terms of Service
-            </RouterLink>{" "}
-            and{" "}
-            <RouterLink
-              to="/privacy"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Privacy Policy
-            </RouterLink>
-            .
-          </p>
-          <div className="text-center">
-            <RouterLink
-              to="/login"
-              className="text-sm font-medium underline underline-offset-4 hover:text-primary"
-            >
-              Already have an account? Sign in
-            </RouterLink>
-          </div>
+          {!loading && user ? (
+            <div className="text-center">
+              <p className="text-blue-600">You are already logged in, redirecting to dashboard...</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col space-y-2 text-center">
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Create an account
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Enter your email below to create your account
+                </p>
+              </div>
+              <UserAuthForm isRegister={true} />
+              <p className="px-8 text-center text-sm text-muted-foreground">
+                By clicking continue, you agree to our{" "}
+                <RouterLink
+                  to="/terms"
+                  className="underline underline-offset-4 hover:text-primary"
+                >
+                  Terms of Service
+                </RouterLink>{" "}
+                and{" "}
+                <RouterLink
+                  to="/privacy"
+                  className="underline underline-offset-4 hover:text-primary"
+                >
+                  Privacy Policy
+                </RouterLink>
+                .
+              </p>
+              <div className="text-center">
+                <RouterLink
+                  to="/login"
+                  className="text-sm font-medium underline underline-offset-4 hover:text-primary"
+                >
+                  Already have an account? Sign in
+                </RouterLink>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

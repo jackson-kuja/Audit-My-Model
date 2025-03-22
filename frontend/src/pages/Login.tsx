@@ -3,10 +3,9 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { cn } from "../lib/utils";
 import { UserAuthForm } from '../components/user-auth-form';
 import { useAuth } from '../context/AuthContext';
-import { AuthRedirect } from '../components/AuthRedirect';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { Button } from '../components/ui/button';
-// Create a simple Alert component since we don't have the UI component
+
 const Alert = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <div className={`p-4 border rounded-md mb-4 ${className}`}>{children}</div>
 );
@@ -24,28 +23,15 @@ const Login: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Force redirection if authenticated
+  // If user is already authenticated, navigate to dashboard
   useEffect(() => {
-    console.log('Login page - useEffect [user, loading]:', { user, loading });
-    if (user && !loading) {
-      console.log('Login page - User is authenticated, redirecting to dashboard');
-      console.log('Login page - User data:', user);
-      console.log('Login page - Current location:', window.location.pathname);
-      console.log('Login page - Calling navigate("/dashboard")');
+    if (!loading && user) {
       navigate('/dashboard');
-      console.log('Login page - Navigate called');
     }
   }, [user, loading, navigate]);
 
-  const goToDashboard = () => {
-    navigate('/dashboard');
-  };
-
   return (
     <div className="w-full h-screen">
-      {/* Add AuthRedirect component to handle redirects */}
-      <AuthRedirect />
-      
       <div className="container relative hidden h-full flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
         <RouterLink
           to="/signup"
@@ -85,15 +71,14 @@ const Login: React.FC = () => {
         </div>
         <div className="lg:p-8">
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-            {user && (
+            {!loading && user && (
               <Alert className="bg-blue-50 border-blue-200">
-                <AlertTitle className="text-blue-800">Logging in...</AlertTitle>
+                <AlertTitle className="text-blue-800">Already logged in</AlertTitle>
                 <AlertDescription className="text-blue-700">
                   Redirecting you to the dashboard
                 </AlertDescription>
               </Alert>
             )}
-            
             {!user && (
               <>
                 <div className="flex flex-col space-y-2 text-center">
@@ -134,15 +119,14 @@ const Login: React.FC = () => {
       {/* Mobile view */}
       <div className="md:hidden h-full w-full p-4 flex flex-col items-center justify-center">
         <div className="w-full max-w-md space-y-6">
-          {user && (
+          {!loading && user && (
             <Alert className="bg-blue-50 border-blue-200">
-              <AlertTitle className="text-blue-800">Logging in...</AlertTitle>
+              <AlertTitle className="text-blue-800">Already logged in</AlertTitle>
               <AlertDescription className="text-blue-700">
                 Redirecting you to the dashboard
               </AlertDescription>
             </Alert>
           )}
-          
           {!user && (
             <>
               <div className="flex flex-col space-y-2 text-center">

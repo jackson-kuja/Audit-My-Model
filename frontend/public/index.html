@@ -17,70 +17,9 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
     />
     <title>Audit My File</title>
-    <!-- Pre-React authentication check - runs before any React code -->
-    <script>
-      (function() {
-        // Check if we need to redirect authenticated users
-        function checkAndRedirect() {
-          // Only run on public paths
-          var path = window.location.pathname.toLowerCase();
-          var publicPaths = ['/login', '/register', '/signup', '/'];
-          if (!publicPaths.includes(path)) return;
-          
-          console.log('ULTRA-EARLY AUTH CHECK: Running on path', path);
-          
-          // Check all possible auth indicators
-          var isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-          
-          // Log all localStorage keys for debugging
-          for (var i = 0; i < localStorage.length; i++) {
-            var key = localStorage.key(i);
-            if (key && key.includes('supabase')) {
-              console.log('Found Supabase key:', key);
-            }
-          }
-          
-          // Check for any Supabase session data 
-          var hasSupabaseData = false;
-          for (var i = 0; i < localStorage.length; i++) {
-            var key = localStorage.key(i);
-            if (key && key.includes('supabase') && key.includes('session')) {
-              var sessionData = localStorage.getItem(key);
-              if (sessionData) {
-                try {
-                  var session = JSON.parse(sessionData);
-                  if (session && session.access_token) {
-                    hasSupabaseData = true;
-                    console.log('Found valid Supabase session');
-                    break;
-                  }
-                } catch (e) {
-                  console.log('Error parsing session data', e);
-                }
-              }
-            }
-          }
-          
-          // If authenticated by any method, redirect
-          if (isAuthenticated || hasSupabaseData) {
-            console.log('ULTRA-EARLY AUTH CHECK: User is authenticated on public page, redirecting to dashboard');
-            window.location.href = '/dashboard';
-            return true;
-          }
-          
-          return false;
-        }
-        
-        // Run the check immediately
-        if (checkAndRedirect()) {
-          // If redirecting, prevent further page loading
-          document.body = document.createElement('body');
-          document.body.innerHTML = '<h1>Redirecting to dashboard...</h1>';
-        }
-      })();
-    </script>
   </head>
   <body>
+    <!-- Removed the ULTRA-EARLY AUTH CHECK script to allow normal React flow -->
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
   </body>

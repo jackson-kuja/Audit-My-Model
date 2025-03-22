@@ -31,33 +31,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Enhanced function to create a user object from session data and profile data
+  // Function to create a user object from session data and additional profile data
   const createUserFromSession = async (sessionUser: any): Promise<User> => {
-    const baseUser = {
+    const baseUser: User = {
       id: sessionUser.id,
       email: sessionUser.email || '',
       created_at: sessionUser.created_at || new Date().toISOString(),
       updated_at: sessionUser.updated_at || new Date().toISOString(),
-      is_paid: false,
       user_metadata: sessionUser.user_metadata || {},
       app_metadata: sessionUser.app_metadata || {}
     };
 
     try {
-      // Fetch profile data from profiles table
+      // Attempt to load profile row from 'profiles' table
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', sessionUser.id)
         .single();
-      
-      if (error) {
-        console.error('Error fetching profile data:', error);
-        return baseUser;
-      }
-      
-      if (data) {
-        // Merge profile data with base user data
+
+      if (!error && data) {
         return {
           ...baseUser,
           first_name: data.first_name,
@@ -67,89 +60,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           subscription_end_date: data.subscription_end_date
         };
       }
-      
       return baseUser;
     } catch (err) {
-      console.error('Error in profile data processing:', err);
+      console.error('[AuthContext] Error in profile fetch:', err);
       return baseUser;
     }
   };
 
   // Initialize auth state on component mount
   useEffect(() => {
-    console.log('AuthProvider mounted - initializing auth state');
-    
-    // Early check - if we're on a public page and localStorage says we're authenticated, redirect immediately
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    const currentPath = window.location.pathname.toLowerCase();
-    const publicPaths = ['/login', '/register', '/signup', '/'];
-    
-    if (isAuthenticated && publicPaths.includes(currentPath)) {
-      console.log('CRITICAL PATH: localStorage indicates user is authenticated on public page - immediate redirect');
-      window.location.href = '/dashboard';
-      return; // Skip further initialization if we're redirecting
-    }
-    
-    // Function to handle auth state change
-    const handleAuthChange = async (event: string, session: any) => {
-      console.log('AuthContext - Auth state changed:', event);
-      console.log('AuthContext - Session:', session ? 'Present' : 'Null');
-      
+    console.log('[AuthContext] Initializing auth state');
+
+    // Subscribe to auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[AuthContext] onAuthStateChange event:', event);
       setLoading(true);
-      
-      if (session) {
-        console.log('AuthContext - Session found, setting user state', session);
-        const userData = await createUserFromSession(session.user);
-        console.log('AuthContext - Created user data:', userData);
-        setUser(userData);
-        console.log('AuthContext - User state updated');
+
+      if (session?.user) {
+        const newUserData = await createUserFromSession(session.user);
+        setUser(newUserData);
       } else {
-        console.log('AuthContext - No session, clearing user state');
         setUser(null);
       }
-      
-      setLoading(false);
-    };
 
-    // Subscribe to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
-    
-    // Get initial session
+      setLoading(false);
+    });
+
+    // Function to fetch the current session
     const getInitialSession = async () => {
       setLoading(true);
       try {
-        console.log('Getting initial session');
-        
         const { data } = await supabase.auth.getSession();
         const { session } = data;
-        
-        if (session) {
-          console.log('Auth state changed: SIGNED_IN');
-          // Skip await to prioritize redirect
-          handleAuthChange('SIGNED_IN', session);
-          
-          // Force redirect - ULTRA AGGRESSIVE VERSION
-          const currentPath = window.location.pathname.toLowerCase();
-          const publicPaths = ['/login', '/register', '/signup', '/'];
-          
-          if (publicPaths.includes(currentPath)) {
-            console.log('CRITICAL PATH: Authenticated user detected on public page! Forcing redirect...');
-            // Reset loading state before redirect
-            setLoading(false);
-            // Use direct browser navigation to guarantee redirect
-            window.location.href = '/dashboard';
-            return; // Exit early
-          }
+
+        if (session?.user) {
+          // We have an active session
+          const userData = await createUserFromSession(session.user);
+          setUser(userData);
+        } else {
+          // No session
+          setUser(null);
         }
-      } catch (error) {
-        console.error('Error getting initial session:', error);
+      } catch (err) {
+        console.error('[AuthContext] Error getting initial session:', err);
       } finally {
         setLoading(false);
       }
     };
-    
+
     getInitialSession();
-    
+
     return () => {
       subscription?.unsubscribe();
     };
@@ -159,35 +121,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setError(null);
-      console.log('Logging in with email:', email);
-      
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (signInError) throw signInError;
-      
-      console.log('Login successful');
-      
-      // After successful login, the onAuthStateChange handler will update the user state
-      // but we'll also update it immediately for faster UI response
-      if (data && data.user) {
-        // Set a flag in localStorage to indicate user is authenticated
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('lastAuthTime', Date.now().toString());
-        
+      setLoading(true);
+
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        throw signInError;
+      }
+
+      if (data?.user) {
         const userData = await createUserFromSession(data.user);
         setUser(userData);
-        
-        // Force immediate navigation to dashboard
-        console.log('AuthContext - Login successful, forcing navigation to dashboard');
-        window.location.href = '/dashboard';
       }
     } catch (err: any) {
-      console.error('Login error:', err);
+      console.error('[AuthContext] Login error:', err);
       setError(err.message || 'Failed to log in');
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -195,8 +145,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (email: string, password: string) => {
     try {
       setError(null);
-      console.log('Registering with email:', email);
-      
+      setLoading(true);
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -204,55 +154,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           emailRedirectTo: `${window.location.origin}/dashboard`
         }
       });
-      
-      if (signUpError) throw signUpError;
 
-      console.log('Registration successful');
-      
-      // After successful registration, we should have a session and user
-      if (data && data.user) {
-        // Set a flag in localStorage to indicate user is authenticated
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('lastAuthTime', Date.now().toString());
-        
+      if (signUpError) {
+        throw signUpError;
+      }
+
+      if (data?.user) {
         const userData = await createUserFromSession(data.user);
         setUser(userData);
-        
-        // Force immediate navigation to dashboard
-        console.log('AuthContext - Registration successful, forcing navigation to dashboard');
-        window.location.href = '/dashboard';
       }
     } catch (err: any) {
-      console.error('Registration error:', err);
+      console.error('[AuthContext] Registration error:', err);
       setError(err.message || 'Failed to register');
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   // Logout function
   const logout = async () => {
     try {
-      console.log('Logging out');
+      console.log('[AuthContext] Logging out');
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      // Clear the authentication flags in localStorage
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('lastAuthTime');
-      
-      // Set user to null for UI updates
+      if (error) {
+        throw error;
+      }
       setUser(null);
-      console.log('Log out successful');
-      
-      // Route to login page
-      window.location.href = '/login';
     } catch (err: any) {
-      console.error('Logout error:', err);
+      console.error('[AuthContext] Logout error:', err);
       setError(err.message || 'Failed to log out');
     }
   };
 
-  // Provide auth context
   return (
     <AuthContext.Provider
       value={{

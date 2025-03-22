@@ -226,6 +226,96 @@ const Dashboard: React.FC = () => {
     return () => clearTimeout(retryTimer);
   }, [user, isUserPaid]);
 
+  // Add effect to handle URL auth params
+  useEffect(() => {
+    // Check for authentication status in URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const authenticated = urlParams.get('authenticated');
+    const timestamp = urlParams.get('ts');
+    
+    if (authenticated === 'true' && timestamp) {
+      console.log('[Dashboard] URL indicates authentication, timestamp:', timestamp);
+      // Force a direct check with Supabase
+      const checkSessionAndFetchData = async () => {
+        try {
+          setIsLoading(true);
+          console.log('[Dashboard] Checking Supabase session from URL auth params');
+          const { data: sessionData } = await supabase.auth.getSession();
+          let userId = sessionData?.session?.user?.id;
+          
+          if (userId) {
+            console.log('[Dashboard] Found user from URL auth params:', userId);
+            
+            // Directly fetch audits with the user ID
+            console.log('[Dashboard] Directly fetching audits with user ID from URL auth');
+            const { data: auditData, error } = await supabase
+              .from('audits')
+              .select('*')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false });
+              
+            if (error) {
+              console.error('[Dashboard] Error fetching audits from URL auth:', error);
+              setIsLoading(false);
+              return;
+            }
+            
+            console.log('[Dashboard] Audits retrieved from URL auth:', auditData);
+            
+            if (!auditData || auditData.length === 0) {
+              console.log('[Dashboard] No audits found for user from URL auth');
+              setIsLoading(false);
+              setTasks([]);
+              setRecentAudits([]);
+              return;
+            }
+            
+            // Convert raw database objects to Audit type
+            const audits = auditData.map(item => ({
+              id: item.id,
+              user_id: item.user_id,
+              name: item.name || item.model_name || '',
+              model_name: item.model_name,
+              model_type: item.model_type,
+              description: item.description,
+              file_path: item.file_path,
+              audit_type: item.audit_type,
+              results: item.results,
+              original_filename: item.original_filename,
+              status: (item.status as AuditStatus) || 'pending',
+              created_at: item.created_at,
+              updated_at: item.updated_at,
+              completed_at: item.completed_at,
+              risk_score: (item.score || item.risk_score || 0) as number,
+              score: (item.score || 0) as number,
+              summary: item.summary,
+              audit_result: item.audit_result,
+              error_message: item.error_message
+            }));
+            
+            // Convert audits to the format expected by the DataTable
+            const formattedTasks = convertAuditsToTasks(audits, isUserPaid);
+            setTasks(formattedTasks);
+            setRecentAudits(formattedTasks.slice(0, 3));
+            setIsLoading(false);
+          } else {
+            console.log('[Dashboard] No user ID found from URL auth params');
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error('[Dashboard] Error in URL auth flow:', error);
+          setIsLoading(false);
+        }
+      };
+      
+      checkSessionAndFetchData();
+      
+      // Remove auth params from URL without refresh
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [isUserPaid]);
+
   // Handle clicking on an audit card
   const handleAuditClick = (id: string) => {
     const audit = tasks.find(task => task.id === id);

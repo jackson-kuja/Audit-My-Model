@@ -100,36 +100,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     };
 
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+    
     // Get initial session
-    const initializeAuth = async () => {
+    const getInitialSession = async () => {
+      setLoading(true);
       try {
         console.log('Getting initial session');
+        
         const { data } = await supabase.auth.getSession();
-        await handleAuthChange('INITIAL_SESSION', data.session);
-      } catch (err) {
-        console.error('Error getting initial session:', err);
-        setUser(null);
+        const { session } = data;
+        
+        if (session) {
+          console.log('Auth state changed: SIGNED_IN');
+          // Skip await to prioritize redirect
+          handleAuthChange('SIGNED_IN', session);
+          
+          // Force redirect - ULTRA AGGRESSIVE VERSION
+          const currentPath = window.location.pathname.toLowerCase();
+          const publicPaths = ['/login', '/register', '/signup', '/'];
+          
+          if (publicPaths.includes(currentPath)) {
+            console.log('CRITICAL PATH: Authenticated user detected on public page! Forcing redirect...');
+            // Reset loading state before redirect
+            setLoading(false);
+            // Use direct browser navigation to guarantee redirect
+            window.location.href = '/dashboard';
+            return; // Exit early
+          }
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+      } finally {
         setLoading(false);
       }
     };
-
-    // Call initialize
-    initializeAuth();
-
-    // Set up auth state change listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event);
-        await handleAuthChange(event, session);
-      }
-    );
-
-    // Cleanup
+    
+    getInitialSession();
+    
     return () => {
-      if (authListener && authListener.subscription) {
-        console.log('Cleaning up auth listener');
-        authListener.subscription.unsubscribe();
-      }
+      subscription?.unsubscribe();
     };
   }, []);
 

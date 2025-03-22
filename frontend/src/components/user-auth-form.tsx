@@ -45,20 +45,6 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
     setError(null);
     setIsLoading(true);
 
-    // Set authentication flag immediately - this will be detected by our early scripts
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('lastAuthTime', Date.now().toString());
-    // Also use sessionStorage as a backup
-    sessionStorage.setItem('isAuthenticated', 'true');
-    sessionStorage.setItem('lastAuthTime', Date.now().toString());
-    
-    // Create a timestamp that will be used to validate the redirect
-    const authTimestamp = Date.now().toString();
-    
-    // Force immediate hard redirect WITH authentication parameter in URL
-    console.log('UserAuthForm - CRITICAL REDIRECT: Forcing navigation to dashboard IMMEDIATELY');
-    window.location.replace(`/dashboard?authenticated=true&ts=${authTimestamp}`);
-    
     try {
       console.log(`UserAuthForm - Attempting ${isRegister ? 'registration' : 'login'} with email: ${email}`);
       
@@ -76,16 +62,13 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
         console.log('UserAuthForm - User state after login:', { user });
       }
       
-      // This point should never be reached as we already redirected
+      // Only navigate after successful auth
+      console.log('UserAuthForm - Auth successful, navigating to dashboard');
+      navigate('/dashboard');
       
     } catch (err) {
       console.error(`UserAuthForm - ${isRegister ? 'Registration' : 'Login'} error:`, err);
       setError(err instanceof Error ? err.message : 'Authentication failed');
-      // Remove the auth flag if login fails
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('lastAuthTime');
-      sessionStorage.removeItem('isAuthenticated');
-      sessionStorage.removeItem('lastAuthTime');
       setIsLoading(false);
     }
   }

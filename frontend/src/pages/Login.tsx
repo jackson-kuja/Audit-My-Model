@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { cn } from "../lib/utils";
 import { UserAuthForm } from '../components/user-auth-form';
 import { useAuth } from '../context/AuthContext';
@@ -21,21 +21,18 @@ const AlertDescription = ({ children, className }: { children: React.ReactNode, 
 const Login: React.FC = () => {
   usePageTitle('Login');
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   // Force redirection if authenticated
   useEffect(() => {
     if (user && !loading) {
       console.log('Login page - User is authenticated, redirecting to dashboard');
-      // Use a timeout to ensure this runs after render
-      const timer = setTimeout(() => {
-        document.location.href = '/dashboard';
-      }, 1000);
-      return () => clearTimeout(timer);
+      navigate('/dashboard');
     }
-  }, [user, loading]);
+  }, [user, loading, navigate]);
 
   const goToDashboard = () => {
-    document.location.href = '/dashboard';
+    navigate('/dashboard');
   };
 
   return (

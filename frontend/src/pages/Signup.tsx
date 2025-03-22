@@ -1,14 +1,25 @@
-import React from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { cn } from "../lib/utils";
 import { UserAuthForm } from '../components/user-auth-form';
 import { Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { useAuth } from '../context/AuthContext';
 
 const Signup: React.FC = () => {
   const theme = useTheme();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   usePageTitle('Signup');
+
+  // Force redirection if authenticated
+  useEffect(() => {
+    if (user && !loading) {
+      console.log('Signup page - User is authenticated, redirecting to dashboard');
+      navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
 
   return (
     <div className="w-full h-screen">

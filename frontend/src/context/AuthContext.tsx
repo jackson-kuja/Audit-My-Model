@@ -80,21 +80,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log('AuthProvider mounted - initializing auth state');
     
     // Function to handle auth state change
-    const handleAuthChange = async (session: any) => {
+    const handleAuthChange = async (event: string, session: any) => {
+      console.log('AuthContext - Auth state changed:', event);
+      console.log('AuthContext - Session:', session ? 'Present' : 'Null');
+      
       setLoading(true);
       
       if (session) {
-        try {
-          console.log('Session found, setting user state', session);
-          const userData = await createUserFromSession(session.user);
-          setUser(userData);
-          console.log('User state set to:', userData);
-        } catch (err) {
-          console.error('Error setting user state:', err);
-          setUser(null);
-        }
+        console.log('AuthContext - Session found, setting user state', session);
+        const userData = await createUserFromSession(session.user);
+        console.log('AuthContext - Created user data:', userData);
+        setUser(userData);
+        console.log('AuthContext - User state updated');
       } else {
-        console.log('No session found, clearing user state');
+        console.log('AuthContext - No session, clearing user state');
         setUser(null);
       }
       
@@ -106,7 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         console.log('Getting initial session');
         const { data } = await supabase.auth.getSession();
-        await handleAuthChange(data.session);
+        await handleAuthChange('INITIAL_SESSION', data.session);
       } catch (err) {
         console.error('Error getting initial session:', err);
         setUser(null);
@@ -121,7 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event);
-        await handleAuthChange(session);
+        await handleAuthChange(event, session);
       }
     );
 

@@ -26,11 +26,16 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
 
   // If user is already authenticated, redirect to dashboard
   React.useEffect(() => {
+    console.log('UserAuthForm - useEffect [user]:', { user, isLoading });
     if (user) {
       console.log('UserAuthForm - User already authenticated, redirecting to dashboard');
+      console.log('UserAuthForm - User data:', user);
+      console.log('UserAuthForm - Current location:', window.location.pathname);
+      console.log('UserAuthForm - Calling navigate("/dashboard")');
       navigate('/dashboard');
+      console.log('UserAuthForm - Navigate called');
     }
-  }, [user, navigate]);
+  }, [user, navigate, isLoading]);
 
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
@@ -48,11 +53,17 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
         await register(email, password);
         console.log('UserAuthForm - Registration successful');
       } else {
+        console.log('UserAuthForm - Calling login function');
         await login(email, password);
         console.log('UserAuthForm - Login successful');
+        console.log('UserAuthForm - User state after login:', { user });
+        
+        // Force immediate redirect instead of waiting for state update
+        console.log('UserAuthForm - Forcing immediate redirect to dashboard');
+        navigate('/dashboard');
       }
       
-      // Redirect will be triggered by the useEffect when user state changes
+      // Regular redirect will be triggered by the useEffect when user state changes
       console.log('UserAuthForm - Waiting for user state update before redirect');
       
     } catch (err) {

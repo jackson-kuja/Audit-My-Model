@@ -25,9 +25,14 @@ const Login: React.FC = () => {
 
   // Force redirection if authenticated
   useEffect(() => {
+    console.log('Login page - useEffect [user, loading]:', { user, loading });
     if (user && !loading) {
       console.log('Login page - User is authenticated, redirecting to dashboard');
+      console.log('Login page - User data:', user);
+      console.log('Login page - Current location:', window.location.pathname);
+      console.log('Login page - Calling navigate("/dashboard")');
       navigate('/dashboard');
+      console.log('Login page - Navigate called');
     }
   }, [user, loading, navigate]);
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from './components/ui/toaster';
@@ -17,51 +17,83 @@ import Navbar from './components/Navbar';
 import SupabaseConfig from './pages/SupabaseConfig';
 import TestPage from './pages/TestPage';
 
-// Layout component that conditionally renders Navbar and container
-const AppLayout = () => {
-  const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
-  const isDashboardPage = location.pathname === '/dashboard' || location.pathname === '/';
-  
-  return (
-    <div className="min-h-screen bg-background">
-      {!isAuthPage && <Navbar />}
-      
-      <main className={`flex-1 overflow-y-auto ${isDashboardPage ? 'py-4' : 'container py-4'}`}>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/supabase-config" element={<SupabaseConfig />} />
-          <Route path="/test" element={<TestPage />} />
-          
-          {/* Protected Routes */}
-          <Route element={<PrivateRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/upload" element={<Upload />} />
-            <Route path="/audit/:id" element={<AuditDetailContainer />} />
-            <Route path="/profile" element={<Profile />} />
-          </Route>
-          
-          {/* Redirect root to dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          
-          {/* 404 Page */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
-      
-      <Toaster />
-    </div>
-  );
-};
+// A wrapper for layout consistency
+const PageWithNavbar = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex flex-col h-screen">
+    <Navbar />
+    <main className="flex-1 overflow-y-auto container py-4">
+      {children}
+    </main>
+  </div>
+);
+
+// Dashboard has a special layout
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex flex-col h-screen">
+    <Navbar />
+    <main className="flex-1 overflow-y-auto py-4">
+      {children}
+    </main>
+  </div>
+);
 
 const App: React.FC = () => {
+  console.log('App rendering');
+  
   return (
     <ThemeProvider defaultTheme="system" storageKey="audit-my-model-theme">
       <AuthProvider>
         <Router>
-          <AppLayout />
+          <div className="min-h-screen bg-background">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/supabase-config" element={<SupabaseConfig />} />
+              <Route path="/test" element={<TestPage />} />
+              
+              {/* Protected Routes */}
+              <Route path="/dashboard" element={
+                <PrivateRoute>
+                  <DashboardLayout>
+                    <Dashboard />
+                  </DashboardLayout>
+                </PrivateRoute>
+              } />
+              
+              <Route path="/upload" element={
+                <PrivateRoute>
+                  <PageWithNavbar>
+                    <Upload />
+                  </PageWithNavbar>
+                </PrivateRoute>
+              } />
+              
+              <Route path="/audit/:id" element={
+                <PrivateRoute>
+                  <PageWithNavbar>
+                    <AuditDetailContainer />
+                  </PageWithNavbar>
+                </PrivateRoute>
+              } />
+              
+              <Route path="/profile" element={
+                <PrivateRoute>
+                  <PageWithNavbar>
+                    <Profile />
+                  </PageWithNavbar>
+                </PrivateRoute>
+              } />
+              
+              {/* Redirect root to dashboard */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              
+              {/* 404 Page */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            
+            <Toaster />
+          </div>
         </Router>
       </AuthProvider>
     </ThemeProvider>

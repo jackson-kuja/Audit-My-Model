@@ -1,9 +1,13 @@
 import React, { useEffect } from 'react';
-import { Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CircularProgress, Box } from '@mui/material';
 
-const PrivateRoute: React.FC = () => {
+interface PrivateRouteProps {
+  children: React.ReactNode;
+}
+
+const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   
@@ -28,9 +32,9 @@ const PrivateRoute: React.FC = () => {
       </Box>
     );
   }
-
-  console.log('PrivateRoute - User authenticated, rendering Outlet');
-  return user ? <Outlet /> : null; // Null because redirect happens in useEffect
+  
+  console.log('PrivateRoute - User authenticated, rendering children');
+  return user ? <>{children}</> : null; // Null because redirect happens in useEffect
 };
 
-export default PrivateRoute; 
+export default PrivateRoute;

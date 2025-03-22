@@ -79,6 +79,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     console.log('AuthProvider mounted - initializing auth state');
     
+    // Early check - if we're on a public page and localStorage says we're authenticated, redirect immediately
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    const currentPath = window.location.pathname.toLowerCase();
+    const publicPaths = ['/login', '/register', '/signup', '/'];
+    
+    if (isAuthenticated && publicPaths.includes(currentPath)) {
+      console.log('CRITICAL PATH: localStorage indicates user is authenticated on public page - immediate redirect');
+      window.location.href = '/dashboard';
+      return; // Skip further initialization if we're redirecting
+    }
+    
     // Function to handle auth state change
     const handleAuthChange = async (event: string, session: any) => {
       console.log('AuthContext - Auth state changed:', event);
@@ -162,6 +173,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // After successful login, the onAuthStateChange handler will update the user state
       // but we'll also update it immediately for faster UI response
       if (data && data.user) {
+        // Set a flag in localStorage to indicate user is authenticated
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('lastAuthTime', Date.now().toString());
+        
         const userData = await createUserFromSession(data.user);
         setUser(userData);
         
@@ -196,6 +211,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // After successful registration, we should have a session and user
       if (data && data.user) {
+        // Set a flag in localStorage to indicate user is authenticated
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('lastAuthTime', Date.now().toString());
+        
         const userData = await createUserFromSession(data.user);
         setUser(userData);
         
@@ -213,19 +232,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      setError(null);
       console.log('Logging out');
-      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      console.log('Logout successful');
+      // Clear the authentication flags in localStorage
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('lastAuthTime');
       
-      // The onAuthStateChange handler will clear the user state
-      // but we'll also clear it immediately for faster UI response
+      // Set user to null for UI updates
       setUser(null);
+      console.log('Log out successful');
       
-      // Redirect handled by components that use useAuth
+      // Route to login page
+      window.location.href = '/login';
     } catch (err: any) {
       console.error('Logout error:', err);
       setError(err.message || 'Failed to log out');

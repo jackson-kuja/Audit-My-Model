@@ -42,7 +42,7 @@ const Login: React.FC = () => {
     <div className="w-full h-screen">
       <div className="container relative hidden h-full flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
         <RouterLink
-          to="/register"
+          to="/signup"
           className={cn(
             "absolute right-4 top-4 md:right-8 md:top-8 text-sm font-medium underline underline-offset-4 hover:text-primary"
           )}
@@ -50,7 +50,7 @@ const Login: React.FC = () => {
           Create Account
         </RouterLink>
         <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
-          <div className="absolute inset-0 bg-zinc-900" />
+          <div className="absolute inset-0 bg-black" />
           <div className="relative z-20 flex items-center text-lg font-medium">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -101,32 +101,27 @@ const Login: React.FC = () => {
                 <UserAuthForm />
                 <p className="px-8 text-center text-sm text-muted-foreground">
                   By signing in, you agree to our{" "}
-                  <RouterLink
-                    to="/terms"
+                  <a
+                    href="https://athenlabs.com/terms/model"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="underline underline-offset-4 hover:text-primary"
                   >
                     Terms of Service
-                  </RouterLink>{" "}
+                  </a>{" "}
                   and{" "}
-                  <RouterLink
-                    to="/privacy"
+                  <a
+                    href="https://athenlabs.com/privacy/model"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="underline underline-offset-4 hover:text-primary"
                   >
                     Privacy Policy
-                  </RouterLink>
+                  </a>
                   .
                 </p>
               </>
             )}
-            
-            <div className="mt-4 text-center">
-              <RouterLink
-                to="/test"
-                className="text-sm font-medium underline underline-offset-4 hover:text-primary"
-              >
-                Test Page
-              </RouterLink>
-            </div>
           </div>
         </div>
       </div>
@@ -155,24 +150,28 @@ const Login: React.FC = () => {
               <UserAuthForm />
               <p className="px-8 text-center text-sm text-muted-foreground">
                 By signing in, you agree to our{" "}
-                <RouterLink
-                  to="/terms"
+                <a
+                  href="https://athenlabs.com/terms/model"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="underline underline-offset-4 hover:text-primary"
                 >
                   Terms of Service
-                </RouterLink>{" "}
+                </a>{" "}
                 and{" "}
-                <RouterLink
-                  to="/privacy"
+                <a
+                  href="https://athenlabs.com/privacy/model"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="underline underline-offset-4 hover:text-primary"
                 >
                   Privacy Policy
-                </RouterLink>
+                </a>
                 .
               </p>
               <div className="text-center">
                 <RouterLink
-                  to="/register"
+                  to="/signup"
                   className="text-sm font-medium underline underline-offset-4 hover:text-primary"
                 >
                   Don't have an account? Create one
@@ -180,15 +179,6 @@ const Login: React.FC = () => {
               </div>
             </>
           )}
-          
-          <div className="mt-4 text-center">
-            <RouterLink
-              to="/test"
-              className="text-sm font-medium underline underline-offset-4 hover:text-primary"
-            >
-              Test Page
-            </RouterLink>
-          </div>
         </div>
       </div>
     </div>

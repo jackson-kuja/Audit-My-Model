@@ -132,7 +132,7 @@ const TestPage: React.FC = () => {
           <p className="text-sm text-gray-600 mb-2">Debug Links:</p>
           <div className="flex flex-col gap-2">
             <a href="/login" className="text-blue-500 hover:underline">Login Page</a>
-            <a href="/register" className="text-blue-500 hover:underline">Register Page</a>
+            <a href="/signup" className="text-blue-500 hover:underline">Sign up Page</a>
             <a href="/dashboard" className="text-blue-500 hover:underline">Dashboard Page</a>
           </div>
         </div>

@@ -65,8 +65,8 @@ const Navbar: React.FC = () => {
               <Button variant="ghost" onClick={() => navigate('/login')}>
                 Login
               </Button>
-              <Button onClick={() => navigate('/register')}>
-                Register
+              <Button onClick={() => navigate('/signup')}>
+                Sign up
               </Button>
             </div>
           )}

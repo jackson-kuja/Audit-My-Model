@@ -10,7 +10,7 @@ import { Toaster } from './components/ui/toaster';
 
 // Pages
 import Login from './pages/Login';
-import Register from './pages/Register';
+import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
 import AuditDetailContainer from './pages/AuditDetailContainer';
@@ -22,7 +22,7 @@ import Profile from './pages/Profile';
 // Layout component that conditionally renders Navbar and container
 const AppLayout = () => {
   const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
   const isDashboardPage = location.pathname === '/dashboard' || location.pathname === '/';
   
   return (
@@ -31,7 +31,7 @@ const AppLayout = () => {
         // Auth pages render without navbar or container padding
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="/supabase-config" element={<SupabaseConfig />} />
           <Route path="/test" element={<TestPage />} />
               
@@ -94,4 +94,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

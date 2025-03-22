@@ -153,9 +153,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (data && data.user) {
         const userData = await createUserFromSession(data.user);
         setUser(userData);
+        
+        // Force immediate navigation to dashboard
+        console.log('AuthContext - Login successful, forcing navigation to dashboard');
+        window.location.href = '/dashboard';
       }
-      
-      // The redirection to dashboard will be handled by the component that called login
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Failed to log in');
@@ -178,17 +180,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (signUpError) throw signUpError;
-      
+
       console.log('Registration successful');
       
-      // After successful registration, the onAuthStateChange handler will update the user state
-      // but we'll also update it immediately for faster UI response
+      // After successful registration, we should have a session and user
       if (data && data.user) {
         const userData = await createUserFromSession(data.user);
         setUser(userData);
+        
+        // Force immediate navigation to dashboard
+        console.log('AuthContext - Registration successful, forcing navigation to dashboard');
+        window.location.href = '/dashboard';
       }
-      
-      // The redirection to dashboard will be handled by the component that called register
     } catch (err: any) {
       console.error('Registration error:', err);
       setError(err.message || 'Failed to register');

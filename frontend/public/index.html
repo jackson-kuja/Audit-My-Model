@@ -17,6 +17,32 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
     />
     <title>Audit My File</title>
+    <!-- Pre-React authentication check - runs before any React code -->
+    <script>
+      (function() {
+        // Check if we need to redirect authenticated users
+        function checkAndRedirect() {
+          // Get current path
+          var path = window.location.pathname.toLowerCase();
+          var publicPaths = ['/login', '/register', '/signup', '/'];
+          
+          // Only run this check on login/register pages
+          if (!publicPaths.includes(path)) return;
+          
+          // Check authentication
+          var isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+          var session = localStorage.getItem('supabase.auth.token');
+          
+          if (isAuthenticated || session) {
+            console.log('PRE-REACT AUTH CHECK: User is authenticated on public page, redirecting to dashboard');
+            window.location.href = '/dashboard';
+          }
+        }
+        
+        // Run the check immediately
+        checkAndRedirect();
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

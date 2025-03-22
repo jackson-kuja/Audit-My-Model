@@ -1,0 +1,16 @@
+{
+  "short_name": "AuditMyFile",
+  "name": "Audit My File",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "description": "Audit My File - AI-powered file analysis and auditing tool",
+  "icons": [
+    {
+      "src": "AuditMyFile.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

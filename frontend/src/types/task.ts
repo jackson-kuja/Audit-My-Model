@@ -9,4 +9,5 @@ export interface Task {
   label: string;
   priority: string;
   created_at: string;
+  locked?: boolean;
 } 

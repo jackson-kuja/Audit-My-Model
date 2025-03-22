@@ -4,9 +4,11 @@ import { cn } from "../lib/utils";
 import { UserAuthForm } from '../components/user-auth-form';
 import { Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const Register: React.FC = () => {
   const theme = useTheme();
+  usePageTitle('Register');
 
   return (
     <div className="w-full h-screen">

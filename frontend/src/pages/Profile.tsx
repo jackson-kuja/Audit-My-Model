@@ -9,6 +9,7 @@ import { cn } from "../lib/utils";
 import { useNavigate } from 'react-router-dom';
 import auditService from '../services/auditService';
 import { toast } from "../hooks/use-toast";
+import { usePageTitle } from '../hooks/usePageTitle';
 
 // UI Components
 import {
@@ -88,13 +89,6 @@ const passwordFormSchema = z.object({
   path: ["confirmPassword"],
 });
 
-// Define schema for notification settings
-const notificationsFormSchema = z.object({
-  emailNotifications: z.boolean().default(true),
-  marketingEmails: z.boolean().default(false),
-  securityEmails: z.boolean().default(true),
-});
-
 // Define schema for subscription settings
 const subscriptionFormSchema = z.object({
   userTier: z.enum(['free', 'paid']),
@@ -102,7 +96,6 @@ const subscriptionFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
-type NotificationsFormValues = z.infer<typeof notificationsFormSchema>;
 type SubscriptionFormValues = z.infer<typeof subscriptionFormSchema>;
 
 // Navigation items for settings
@@ -116,10 +109,6 @@ const settingsNavItems = [
     id: "password"
   },
   {
-    title: "Notifications",
-    id: "notifications"
-  },
-  {
     title: "Subscription",
     id: "subscription"
   },
@@ -130,6 +119,7 @@ const settingsNavItems = [
 ];
 
 const Profile: React.FC = () => {
+  usePageTitle('Profile');
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(false);
@@ -189,7 +179,6 @@ const Profile: React.FC = () => {
           <div className="mt-0">
             {activeTab === "profile" && <ProfileSection user={user} />}
             {activeTab === "password" && <PasswordSection user={user} />}
-            {activeTab === "notifications" && <NotificationsSection user={user} />} 
             {activeTab === "subscription" && <SubscriptionSection user={user} />}
             {activeTab === "danger" && <DangerZoneSection user={user} />}
           </div>
@@ -216,9 +205,9 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      // Update user in the database
+      // Update user profile in the database
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .update({
           first_name: data.firstName,
           last_name: data.lastName,
@@ -249,7 +238,7 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
       <div className="mt-0">
         <h3 className="text-lg font-medium">Profile Information</h3>
         <p className="text-sm text-muted-foreground">
-          This information will be displayed publicly so be careful what you share.
+          Update your personal information and account settings below.
         </p>
       </div>
       <Separator />
@@ -330,7 +319,23 @@ const PasswordSection: React.FC<{ user: User }> = ({ user }) => {
 
   const onSubmit = async (data: PasswordFormValues) => {
     try {
-      // Update password through Supabase auth
+      // First, verify the current password by trying to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: data.currentPassword
+      });
+      
+      // If sign-in fails, the current password is incorrect
+      if (signInError) {
+        toast({
+          title: "Error",
+          description: "Current password is incorrect",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // If current password is correct, update to the new password
       const { error } = await supabase.auth.updateUser({
         password: data.newPassword
       });
@@ -411,137 +416,6 @@ const PasswordSection: React.FC<{ user: User }> = ({ user }) => {
           />
           
           <Button type="submit">Update Password</Button>
-        </form>
-      </Form>
-    </div>
-  );
-};
-
-// Notifications Section
-const NotificationsSection: React.FC<{ user: User }> = ({ user }) => {
-  const form = useForm<NotificationsFormValues>({
-    resolver: zodResolver(notificationsFormSchema),
-    defaultValues: {
-      emailNotifications: true,
-      marketingEmails: false,
-      securityEmails: true,
-    },
-  });
-
-  const onSubmit = async (data: NotificationsFormValues) => {
-    try {
-      // Update notification preferences through auth API
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          ...(user.user_metadata as Record<string, any>),
-          notification_preferences: data
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast({
-        title: "Notification preferences updated",
-        description: "Your notification preferences have been updated successfully."
-      });
-    } catch (err) {
-      console.error('Error updating notification preferences:', err);
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : 'Failed to update notification preferences',
-        variant: "destructive"
-      });
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="mt-0">
-        <h3 className="text-lg font-medium">Notifications</h3>
-        <p className="text-sm text-muted-foreground">
-          Configure how you receive notifications.
-        </p>
-      </div>
-      <Separator />
-      
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="emailNotifications"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">
-                      Email Notifications
-                    </FormLabel>
-                    <FormDescription>
-                      Receive email notifications about your account activity.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="marketingEmails"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">
-                      Marketing Emails
-                    </FormLabel>
-                    <FormDescription>
-                      Receive emails about new products, features, and more.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="securityEmails"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">
-                      Security Emails
-                    </FormLabel>
-                    <FormDescription>
-                      Receive emails about your account security and activity.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled
-                      aria-readonly
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <Button type="submit">Update Notification Preferences</Button>
         </form>
       </Form>
     </div>

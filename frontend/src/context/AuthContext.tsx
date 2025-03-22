@@ -31,9 +31,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Simple function to create a user object from session data
-  const createUserFromSession = (sessionUser: any): User => {
-    return {
+  // Enhanced function to create a user object from session data and profile data
+  const createUserFromSession = async (sessionUser: any): Promise<User> => {
+    const baseUser = {
       id: sessionUser.id,
       email: sessionUser.email || '',
       created_at: sessionUser.created_at || new Date().toISOString(),
@@ -42,6 +42,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       user_metadata: sessionUser.user_metadata || {},
       app_metadata: sessionUser.app_metadata || {}
     };
+
+    try {
+      // Fetch profile data from profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', sessionUser.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile data:', error);
+        return baseUser;
+      }
+      
+      if (data) {
+        // Merge profile data with base user data
+        return {
+          ...baseUser,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          preferred_email: data.preferred_email,
+          is_paid: data.is_paid,
+          subscription_end_date: data.subscription_end_date
+        };
+      }
+      
+      return baseUser;
+    } catch (err) {
+      console.error('Error in profile data processing:', err);
+      return baseUser;
+    }
   };
 
   // Initialize auth state on component mount
@@ -55,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (session) {
         try {
           console.log('Session found, setting user state', session);
-          const userData = createUserFromSession(session.user);
+          const userData = await createUserFromSession(session.user);
           setUser(userData);
           console.log('User state set to:', userData);
         } catch (err) {
@@ -121,7 +152,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // After successful login, the onAuthStateChange handler will update the user state
       // but we'll also update it immediately for faster UI response
       if (data && data.user) {
-        const userData = createUserFromSession(data.user);
+        const userData = await createUserFromSession(data.user);
         setUser(userData);
       }
       
@@ -154,7 +185,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // After successful registration, the onAuthStateChange handler will update the user state
       // but we'll also update it immediately for faster UI response
       if (data && data.user) {
-        const userData = createUserFromSession(data.user);
+        const userData = await createUserFromSession(data.user);
         setUser(userData);
       }
       

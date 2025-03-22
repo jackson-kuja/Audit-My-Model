@@ -5,6 +5,8 @@ import { z } from 'zod';
 import auditService from '../services/auditService';
 import { Audit, mapStatusForDisplay, Task } from '../types/index';
 import AddIcon from '@mui/icons-material/Add';
+import Lock from '@mui/icons-material/Lock';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 // Shadcn UI Components
 import { Button } from '../components/ui/button';
@@ -14,6 +16,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { DataTable } from "../components/dashboard/data-table";
 import { columns } from "../components/dashboard/columns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip";
 
 // Import color functions
 import { 
@@ -34,12 +37,26 @@ const taskSchema = z.object({
   priority: z.string(),
 });
 
+// Check if an audit is locked for free users (locked if less than 24 hours old)
+const isAuditLocked = (audit: Audit, isUserPaid: boolean): boolean => {
+  // If user is paid, never lock audits
+  if (isUserPaid) return false;
+  
+  // For free users, check if audit is less than 24 hours old
+  const createdAt = new Date(audit.created_at);
+  const now = new Date();
+  const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+  
+  // Lock if less than 24 hours have passed
+  return hoursDiff < 24;
+};
+
 // Function to convert Audits to Tasks format for the data table
-const convertAuditsToTasks = (audits: Audit[]): Task[] => {
+const convertAuditsToTasks = (audits: Audit[], isUserPaid: boolean): Task[] => {
   return audits.map(audit => {
     const label = audit.model_type === 'excel' ? 'model' :
-                  audit.model_type === 'word' ? 'doc' : 
-                  audit.model_type === 'powerpoint' ? 'deck' : 'data';
+                audit.model_type === 'word' ? 'doc' : 
+                audit.model_type === 'powerpoint' ? 'deck' : 'data';
     
     return {
       id: audit.id,
@@ -47,7 +64,8 @@ const convertAuditsToTasks = (audits: Audit[]): Task[] => {
       status: mapStatusForDisplay(audit.status).toLowerCase(),
       label: audit.audit_type || label,
       priority: getPriorityFromScore(audit.risk_score || audit.score || 0),
-      created_at: audit.created_at
+      created_at: audit.created_at,
+      locked: isAuditLocked(audit, isUserPaid)
     };
   });
 };
@@ -59,36 +77,56 @@ const getPriorityFromScore = (score: number): string => {
   return 'low';
 };
 
+// Calculate hours remaining until audit unlocks (24 hours from creation)
+const getHoursRemaining = (createdAt: string): number => {
+  const createdDate = new Date(createdAt);
+  const now = new Date();
+  const hoursPassed = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
+  const hoursRemaining = Math.max(0, 24 - hoursPassed);
+  return Math.ceil(hoursRemaining); // Round up for better UX
+};
+
 const Dashboard: React.FC = () => {
+  usePageTitle('Dashboard');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [recentAudits, setRecentAudits] = useState<Task[]>([]);
+  const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
+
+  // Get user's payment tier
+  const isUserPaid = user?.user_tier === 'paid' || user?.is_paid === true;
 
   useEffect(() => {
     const fetchAudits = async () => {
       try {
-        setLoading(true);
+        setIsLoading(true);
         const audits = await auditService.getAudits();
         
         // Convert audits to the format expected by the DataTable
-        const formattedTasks = convertAuditsToTasks(audits);
+        const formattedTasks = convertAuditsToTasks(audits, isUserPaid);
         setTasks(formattedTasks);
-        setLoading(false);
+        setRecentAudits(formattedTasks.slice(0, 3));
+        setIsLoading(false);
       } catch (err) {
         console.error('Error fetching audits:', err);
-        setError('Failed to load audits. Please try again later.');
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchAudits();
-  }, []);
+  }, [isUserPaid]);
 
-  const handleAuditClick = (auditId: string) => {
-    navigate(`/audit/${auditId}`);
+  // Handle clicking on an audit card
+  const handleAuditClick = (id: string) => {
+    const audit = tasks.find(task => task.id === id);
+    if (audit?.locked) {
+      setOpenTooltipId(id); // Just open tooltip for locked audits
+    } else {
+      navigate(`/audit/${id}`);
+    }
   };
 
   // Filter tasks based on active tab
@@ -99,9 +137,6 @@ const Dashboard: React.FC = () => {
     if (activeTab === "docs") return tasks.filter(task => task.label === "doc");
     return tasks;
   }, [tasks, activeTab]);
-
-  // Get recent audits for stats card
-  const recentAudits = tasks.slice(0, 3);
 
   // Get audits by type for filtering
   const allAudits = tasks;
@@ -134,7 +169,7 @@ const Dashboard: React.FC = () => {
         </Button>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="space-y-6">
           {/* Skeleton for Stats Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -186,20 +221,6 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-      ) : error ? (
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{error}</p>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
-          </CardFooter>
-        </Card>
       ) : tasks.length === 0 ? (
         <Card>
           <CardHeader>
@@ -234,17 +255,17 @@ const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent className="text-center">
                 <div className="text-2xl font-bold">
-                  {tasks.filter(task => task.status === "completed").length}
+                  {tasks.filter(task => task.status === "completed" && !task.locked).length}
                 </div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2 text-center">
-                <CardDescription>In Progress</CardDescription>
+                <CardDescription>Pending</CardDescription>
               </CardHeader>
               <CardContent className="text-center">
                 <div className="text-2xl font-bold">
-                  {tasks.filter(task => task.status === "in progress" || task.status === "processing").length}
+                  {tasks.filter(task => task.status === "in progress" || task.status === "processing" || task.status === "pending" || task.locked).length}
                 </div>
               </CardContent>
             </Card>
@@ -258,30 +279,69 @@ const Dashboard: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {recentAudits.map(audit => (
-                  <Card key={audit.id} className="hover:bg-accent cursor-pointer" onClick={() => handleAuditClick(audit.id)}>
-                    <CardContent className="p-4 text-center">
-                      <div className="space-y-2 flex flex-col items-center">
-                        <h3 className="font-medium truncate whitespace-nowrap overflow-hidden w-full">{audit.title}</h3>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                          <Badge className={`${getStatusColor(audit.status)} rounded-md`}>
-                            {audit.status.toLowerCase()}
-                          </Badge>
-                          <Badge 
-                            style={{ backgroundColor: getLabelColor(audit.label), color: '#fff' }}
-                            className="text-xs font-semibold rounded-md"
-                          >
-                            {audit.label.toLowerCase()}
-                          </Badge>
-                          <Badge className={`${getPriorityColor(audit.priority)} rounded-md`}>
-                            {audit.priority.toLowerCase()} risk
-                          </Badge>
-                        </div>
-                        <span className="text-sm text-muted-foreground block mt-2">
-                          {formatDate(audit.created_at)}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <TooltipProvider key={audit.id}>
+                    <Tooltip open={openTooltipId === audit.id} onOpenChange={(open) => {
+                      if (open) {
+                        setOpenTooltipId(audit.id);
+                      } else {
+                        setOpenTooltipId(null);
+                      }
+                    }}>
+                      <TooltipTrigger asChild>
+                        <Card 
+                          className={`hover:bg-accent cursor-pointer relative ${audit.locked ? 'opacity-70' : ''}`} 
+                          onClick={() => handleAuditClick(audit.id)}
+                        >
+                          {audit.locked && (
+                            <div className="absolute top-2 right-2 bg-background rounded-full p-1 shadow">
+                              <Lock fontSize="small" className="text-muted-foreground" />
+                            </div>
+                          )}
+                          <CardContent className="p-4 text-center">
+                            <div className="space-y-2 flex flex-col items-center">
+                              <h3 className="font-medium truncate whitespace-nowrap overflow-hidden w-full">{audit.title}</h3>
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                <Badge className={`${getStatusColor(audit.locked ? 'locked' : audit.status)} rounded-md`}>
+                                  {audit.locked ? 'locked' : audit.status.toLowerCase()}
+                                </Badge>
+                                <Badge 
+                                  style={{ backgroundColor: getLabelColor(audit.label), color: '#fff' }}
+                                  className="text-xs font-semibold rounded-md"
+                                >
+                                  {audit.label.toLowerCase()}
+                                </Badge>
+                                <Badge className={`${getPriorityColor(audit.priority)} rounded-md`}>
+                                  {audit.priority.toLowerCase()} risk
+                                </Badge>
+                              </div>
+                              <span className="text-sm text-muted-foreground block mt-2">
+                                {formatDate(audit.created_at)}
+                                {audit.locked && " • Unlocks in " + getHoursRemaining(audit.created_at) + " Hours"}
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </TooltipTrigger>
+                      {audit.locked && (
+                        <TooltipContent className="w-52 p-2" side="top" sideOffset={5} delayDuration={100}>
+                          <div className="space-y-1">
+                            <p className="font-medium text-center">Unlocks in {getHoursRemaining(audit.created_at)} Hours</p>
+                            <Button 
+                              variant="default" 
+                              size="sm" 
+                              className="w-full mt-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate('/profile?tab=subscription');
+                              }}
+                            >
+                              Get Access Now
+                            </Button>
+                          </div>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 ))}
               </div>
             )}

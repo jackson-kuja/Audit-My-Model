@@ -107,7 +107,7 @@ export type Mail = (typeof mails)[number];
 
 export const accounts = [
   {
-    label: "Audit My Model",
+    label: "Audit My File",
     email: "user@auditmodel.com",
     icon: (
       <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

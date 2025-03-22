@@ -1,8 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Box, Typography, Button, Paper } from '@mui/material';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const NotFound: React.FC = () => {
+  usePageTitle('Page Not Found');
   const navigate = useNavigate();
 
   return (

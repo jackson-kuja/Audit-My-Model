@@ -4,6 +4,7 @@ import { cn } from "../lib/utils";
 import { UserAuthForm } from '../components/user-auth-form';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
+import { usePageTitle } from '../hooks/usePageTitle';
 // Create a simple Alert component since we don't have the UI component
 const Alert = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <div className={`p-4 border rounded-md mb-4 ${className}`}>{children}</div>
@@ -18,6 +19,7 @@ const AlertDescription = ({ children, className }: { children: React.ReactNode, 
 );
 
 const Login: React.FC = () => {
+  usePageTitle('Login');
   const { user, loading } = useAuth();
 
   // Force redirection if authenticated

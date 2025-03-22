@@ -22,6 +22,7 @@ import {
   SelectValue
 } from "../components/ui/select";
 import { toast } from "../hooks/use-toast";
+import { usePageTitle } from '../hooks/usePageTitle';
 import {
   getStatusColor,
   getPriorityColor
@@ -275,6 +276,7 @@ const saveStatusToDatabase = async (
 };
 
 const AuditDetail: React.FC<AuditDetailProps> = ({ audit, loading, error }) => {
+  usePageTitle('Audit Details');
   const navigate = useNavigate();
   const { id: auditId } = useParams<{ id: string }>(); // Get audit ID from URL
   // Lift the state up to this component

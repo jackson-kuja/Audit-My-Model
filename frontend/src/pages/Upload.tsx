@@ -7,6 +7,7 @@ import { CreateAuditData } from '../services/auditService';
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import api from '../utils/api';
 import axios from 'axios';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 // Shadcn UI components
 import { Button } from '../components/ui/button';
@@ -117,6 +118,7 @@ const isStepAfter = (currentStep: StepType, targetStep: StepType): boolean => {
 };
 
 const Upload: React.FC = () => {
+  usePageTitle('New Audit');
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -823,7 +825,9 @@ const Upload: React.FC = () => {
               {currentStep === 'type' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div 
-                    className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'excel' ? 'border-primary bg-accent/50' : 'border-input'}`}
+                    className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${
+                      fileType === 'excel' ? 'border-primary bg-accent/50' : 'border-input'
+                    }`}
                     onClick={() => handleFileTypeSelect('excel')}
                   >
                     <FileSpreadsheet className="h-16 w-16 mx-auto mb-4" style={{ color: '#0D7239' }} />
@@ -833,7 +837,9 @@ const Upload: React.FC = () => {
                     </p>
                   </div>
                   <div 
-                    className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'powerpoint' ? 'border-primary bg-accent/50' : 'border-input'}`}
+                    className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${
+                      fileType === 'powerpoint' ? 'border-primary bg-accent/50' : 'border-input'
+                    }`}
                     onClick={() => handleFileTypeSelect('powerpoint')}
                   >
                     <Presentation className="h-16 w-16 mx-auto mb-4" style={{ color: '#D04423' }} />
@@ -843,7 +849,9 @@ const Upload: React.FC = () => {
                     </p>
                   </div>
                   <div 
-                    className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${fileType === 'word' ? 'border-primary bg-accent/50' : 'border-input'}`}
+                    className={`border rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${
+                      fileType === 'word' ? 'border-primary bg-accent/50' : 'border-input'
+                    }`}
                     onClick={() => handleFileTypeSelect('word')}
                   >
                     <FileText className="h-16 w-16 mx-auto mb-4" style={{ color: '#1A5CBD' }} />

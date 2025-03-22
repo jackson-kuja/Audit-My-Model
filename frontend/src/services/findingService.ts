@@ -1,4 +1,5 @@
 import { supabase } from '../utils/supabase';
+import { Database } from '../types/supabase';
 
 // Define finding status type
 export type FindingStatus = 'open' | 'in_progress' | 'resolved' | 'ignored';
@@ -13,6 +14,9 @@ export interface FindingStatusRecord {
   updated_at?: string;
 }
 
+// Type for finding status table
+type FindingStatusTable = Database['public']['Tables']['finding_statuses']['Row'];
+
 const findingService = {
   /**
    * Get all status records for a specific audit
@@ -20,11 +24,11 @@ const findingService = {
   async getFindingStatuses(auditId: string): Promise<Record<string, FindingStatus>> {
     console.log(`[Frontend] Getting finding statuses for audit: ${auditId}`);
     
-    // Use any type to avoid TypeScript errors with custom tables
+    // Get finding statuses from the database
     const { data, error } = await supabase
       .from('finding_statuses')
       .select('*')
-      .eq('audit_id', auditId) as any;
+      .eq('audit_id', auditId);
 
     if (error) {
       console.error(`[Frontend] Error fetching finding statuses: ${error.message}`);
@@ -35,8 +39,15 @@ const findingService = {
     const statusMap: Record<string, FindingStatus> = {};
     
     if (data) {
-      data.forEach((record: any) => {
-        statusMap[record.finding_id] = record.status as FindingStatus;
+      data.forEach((record) => {
+        // Type check to ensure status is a valid FindingStatus
+        const status = record.status as FindingStatus;
+        if (status === 'open' || status === 'in_progress' || status === 'resolved' || status === 'ignored') {
+          statusMap[record.finding_id] = status;
+        } else {
+          // Default to open if invalid status
+          statusMap[record.finding_id] = 'open';
+        }
       });
     }
     
@@ -56,7 +67,7 @@ const findingService = {
       .select('*')
       .eq('audit_id', auditId)
       .eq('finding_id', findingId)
-      .maybeSingle() as any;
+      .maybeSingle();
     
     if (fetchError) {
       console.error(`[Frontend] Error checking existing status: ${fetchError.message}`);
@@ -71,7 +82,7 @@ const findingService = {
           status,
           updated_at: new Date().toISOString()
         })
-        .eq('id', existingRecord.id) as any;
+        .eq('id', existingRecord.id);
       
       if (updateError) {
         console.error(`[Frontend] Error updating finding status: ${updateError.message}`);
@@ -88,7 +99,7 @@ const findingService = {
           status,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        }) as any;
+        });
       
       if (insertError) {
         console.error(`[Frontend] Error creating finding status: ${insertError.message}`);
@@ -122,7 +133,7 @@ const findingService = {
       .upsert(records, { 
         onConflict: 'audit_id,finding_id',
         ignoreDuplicates: false 
-      }) as any;
+      });
     
     if (error) {
       console.error(`[Frontend] Error bulk updating finding statuses: ${error.message}`);

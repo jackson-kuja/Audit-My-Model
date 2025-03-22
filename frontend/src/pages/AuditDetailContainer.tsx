@@ -3,12 +3,16 @@ import { useParams } from 'react-router-dom';
 import { Audit } from '../types/index';
 import AuditDetail from './AuditDetail';
 import { supabase } from '../utils/supabase';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export default function AuditDetailContainer() {
   const { id } = useParams<{ id: string }>();
   const [audit, setAudit] = useState<Audit | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Set dynamic page title based on audit name if available
+  usePageTitle(audit?.model_name ? `Audit: ${audit.model_name}` : 'Audit Details');
 
   const fetchAudit = async () => {
     if (!id) {

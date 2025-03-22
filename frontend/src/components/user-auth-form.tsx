@@ -24,6 +24,9 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
   const { login, register, user } = useAuth();
   const navigate = useNavigate();
 
+  // Generate unique IDs for form fields to avoid DOM conflicts
+  const idPrefix = React.useId();
+
   // If user is already authenticated, redirect to dashboard
   React.useEffect(() => {
     console.log('UserAuthForm - useEffect [user]:', { user, isLoading });
@@ -52,15 +55,21 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
         
         await register(email, password);
         console.log('UserAuthForm - Registration successful');
+        
+        // Force immediate redirect with both methods
+        console.log('UserAuthForm - Forcing immediate redirect to dashboard');
+        navigate('/dashboard');
+        setTimeout(() => window.location.href = '/dashboard', 500); // Fallback redirect
       } else {
         console.log('UserAuthForm - Calling login function');
         await login(email, password);
         console.log('UserAuthForm - Login successful');
         console.log('UserAuthForm - User state after login:', { user });
         
-        // Force immediate redirect instead of waiting for state update
+        // Force immediate redirect with both methods
         console.log('UserAuthForm - Forcing immediate redirect to dashboard');
         navigate('/dashboard');
+        setTimeout(() => window.location.href = '/dashboard', 500); // Fallback redirect
       }
       
       // Regular redirect will be triggered by the useEffect when user state changes
@@ -85,11 +94,11 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
       <form onSubmit={onSubmit}>
         <div className="grid gap-2">
           <div className="grid gap-1">
-            <Label className="sr-only" htmlFor="email">
+            <Label className="sr-only" htmlFor={`${idPrefix}-email`}>
               Email
             </Label>
             <Input
-              id="email"
+              id={`${idPrefix}-email`}
               placeholder="name@example.com"
               type="email"
               autoCapitalize="none"
@@ -103,11 +112,11 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
           </div>
           
           <div className="grid gap-1">
-            <Label className="sr-only" htmlFor="password">
+            <Label className="sr-only" htmlFor={`${idPrefix}-password`}>
               Password
             </Label>
             <Input
-              id="password"
+              id={`${idPrefix}-password`}
               placeholder="Password"
               type="password"
               autoComplete={isRegister ? "new-password" : "current-password"}
@@ -121,11 +130,11 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
           
           {isRegister && (
             <div className="grid gap-1">
-              <Label className="sr-only" htmlFor="confirmPassword">
+              <Label className="sr-only" htmlFor={`${idPrefix}-confirmPassword`}>
                 Confirm Password
               </Label>
               <Input
-                id="confirmPassword"
+                id={`${idPrefix}-confirmPassword`}
                 placeholder="Confirm Password"
                 type="password"
                 autoComplete="new-password"

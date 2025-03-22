@@ -203,9 +203,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       console.log('Logging out');
       
-      const { error: signOutError } = await supabase.auth.signOut();
-      
-      if (signOutError) throw signOutError;
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       
       console.log('Logout successful');
       
@@ -213,8 +212,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // but we'll also clear it immediately for faster UI response
       setUser(null);
       
-      // Redirect to login page
-      window.location.href = '/login';
+      // Redirect handled by components that use useAuth
     } catch (err: any) {
       console.error('Logout error:', err);
       setError(err.message || 'Failed to log out');

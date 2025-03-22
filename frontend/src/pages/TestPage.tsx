@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { supabase } from '../utils/supabase';
@@ -8,6 +9,7 @@ const TestPage: React.FC = () => {
   const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>(new Date().toLocaleTimeString());
+  const navigate = useNavigate();
 
   // Check Supabase session directly for comparison
   const checkSupabaseSession = async () => {
@@ -40,7 +42,7 @@ const TestPage: React.FC = () => {
   }, []);
 
   const navigateToDashboard = () => {
-    window.location.href = '/dashboard';
+    navigate('/dashboard');
   };
 
   const forceLogin = async () => {

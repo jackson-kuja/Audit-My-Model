@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -6,7 +7,6 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../utils/supabase';
 import type { User } from '../types/index';
 import { cn } from "../lib/utils";
-import { useNavigate } from 'react-router-dom';
 import auditService from '../services/auditService';
 import { toast } from "../hooks/use-toast";
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -554,6 +554,7 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
 // Danger Zone Section
 const DangerZoneSection: React.FC<{ user: User }> = ({ user }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
   
   const handleDeleteAccount = async () => {
     if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
@@ -587,7 +588,7 @@ const DangerZoneSection: React.FC<{ user: User }> = ({ user }) => {
       
       // Redirect to sign in after a brief delay
       setTimeout(() => {
-        window.location.href = '/login';
+        navigate('/login');
       }, 2000);
     } catch (err) {
       console.error('Error deleting account:', err);

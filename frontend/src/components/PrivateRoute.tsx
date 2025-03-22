@@ -15,21 +15,48 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   
   // Check localStorage for auth flags immediately
   useEffect(() => {
-    console.log('PrivateRoute - Checking localStorage for authentication flags');
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    console.log('PrivateRoute - Checking localStorage and sessionStorage for authentication flags');
+    const isLocalAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    const isSessionAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
     
     // Also check for Supabase session
     let hasSupabaseSession = false;
     try {
+      // Check localStorage
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.includes('supabase') && key.includes('session')) {
           const sessionData = localStorage.getItem(key);
           if (sessionData) {
-            const session = JSON.parse(sessionData);
-            if (session && session.access_token) {
-              hasSupabaseSession = true;
-              break;
+            try {
+              const session = JSON.parse(sessionData);
+              if (session && session.access_token) {
+                hasSupabaseSession = true;
+                break;
+              }
+            } catch (e) {
+              console.log('Error parsing session data', e);
+            }
+          }
+        }
+      }
+      
+      // If not found in localStorage, check sessionStorage
+      if (!hasSupabaseSession) {
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          if (key && key.includes('supabase') && key.includes('session')) {
+            const sessionData = sessionStorage.getItem(key);
+            if (sessionData) {
+              try {
+                const session = JSON.parse(sessionData);
+                if (session && session.access_token) {
+                  hasSupabaseSession = true;
+                  break;
+                }
+              } catch (e) {
+                console.log('Error parsing session data', e);
+              }
             }
           }
         }
@@ -38,9 +65,15 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
       console.error('Error checking Supabase session:', e);
     }
     
-    setIsLocallyAuthenticated(isAuthenticated || hasSupabaseSession);
+    const isAuthenticated = isLocalAuthenticated || isSessionAuthenticated || hasSupabaseSession;
+    setIsLocallyAuthenticated(isAuthenticated);
     setLocalAuthChecked(true);
-    console.log('PrivateRoute - Local auth check result:', { isAuthenticated, hasSupabaseSession });
+    console.log('PrivateRoute - Local auth check result:', { 
+      isLocalAuthenticated, 
+      isSessionAuthenticated, 
+      hasSupabaseSession,
+      isAuthenticated 
+    });
   }, []);
   
   console.log('PrivateRoute - User:', user ? `Authenticated as ${user.email}` : 'Not authenticated');

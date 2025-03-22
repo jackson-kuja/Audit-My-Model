@@ -48,6 +48,9 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
     // Set authentication flag immediately - this will be detected by our early scripts
     localStorage.setItem('isAuthenticated', 'true');
     localStorage.setItem('lastAuthTime', Date.now().toString());
+    // Also use sessionStorage as a backup
+    sessionStorage.setItem('isAuthenticated', 'true');
+    sessionStorage.setItem('lastAuthTime', Date.now().toString());
     
     // Force immediate hard redirect BEFORE login even completes
     console.log('UserAuthForm - CRITICAL REDIRECT: Forcing navigation to dashboard IMMEDIATELY');
@@ -78,6 +81,8 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
       // Remove the auth flag if login fails
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('lastAuthTime');
+      sessionStorage.removeItem('isAuthenticated');
+      sessionStorage.removeItem('lastAuthTime');
       setIsLoading(false);
     }
   }

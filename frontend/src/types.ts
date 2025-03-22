@@ -13,6 +13,7 @@ export interface User {
     name?: string;
     avatar_url?: string;
   };
+  app_metadata?: any;
 }
 
 export interface Audit {
@@ -92,4 +93,4 @@ export interface AuditResult {
     description: string;
     severity: 'low' | 'medium' | 'high';
   }>;
-} 
+}

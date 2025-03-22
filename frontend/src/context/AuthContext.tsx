@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User } from '../types/index';
-import { supabase } from '../utils/supabase';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { supabase } from "../utils/supabase";
+import type { User } from "../types";
 
 // Define AuthContextType
 interface AuthContextType {
@@ -31,23 +37,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Function to create a user object from session data and additional profile data
-  const createUserFromSession = async (sessionUser: any): Promise<User> => {
+  // Helper: load user profile from 'profiles' table
+  const loadUserProfile = async (sessionUser: any): Promise<User> => {
     const baseUser: User = {
       id: sessionUser.id,
-      email: sessionUser.email || '',
+      email: sessionUser.email || "",
       created_at: sessionUser.created_at || new Date().toISOString(),
       updated_at: sessionUser.updated_at || new Date().toISOString(),
       user_metadata: sessionUser.user_metadata || {},
-      app_metadata: sessionUser.app_metadata || {}
+      app_metadata: sessionUser.app_metadata || {},
     };
 
     try {
-      // Attempt to load profile row from 'profiles' table
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', sessionUser.id)
+        .from("profiles")
+        .select("*")
+        .eq("id", sessionUser.id)
         .single();
 
       if (!error && data) {
@@ -57,60 +62,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           last_name: data.last_name,
           preferred_email: data.preferred_email,
           is_paid: data.is_paid,
-          subscription_end_date: data.subscription_end_date
+          subscription_end_date: data.subscription_end_date,
         };
       }
       return baseUser;
     } catch (err) {
-      console.error('[AuthContext] Error in profile fetch:', err);
+      console.error("[AuthContext] loadUserProfile error:", err);
       return baseUser;
     }
   };
 
-  // Initialize auth state on component mount
+  // Initialize auth state and subscribe to changes
   useEffect(() => {
-    console.log('[AuthContext] Initializing auth state');
+    console.log("[AuthContext] Initializing auth state...");
 
-    // Subscribe to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[AuthContext] onAuthStateChange event:', event);
-      setLoading(true);
-
-      if (session?.user) {
-        const newUserData = await createUserFromSession(session.user);
-        setUser(newUserData);
-      } else {
-        setUser(null);
-      }
-
-      setLoading(false);
-    });
-
-    // Function to fetch the current session
+    // 1) Check existing session on component mount
     const getInitialSession = async () => {
       setLoading(true);
       try {
         const { data } = await supabase.auth.getSession();
-        const { session } = data;
-
+        const session = data.session;
         if (session?.user) {
           // We have an active session
-          const userData = await createUserFromSession(session.user);
-          setUser(userData);
+          const profileUser = await loadUserProfile(session.user);
+          setUser(profileUser);
         } else {
-          // No session
           setUser(null);
         }
       } catch (err) {
-        console.error('[AuthContext] Error getting initial session:', err);
+        console.error("[AuthContext] getInitialSession error:", err);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
     getInitialSession();
+
+    // 2) Subscribe to onAuthStateChange
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[AuthContext] onAuthStateChange event:", event);
+      setLoading(true);
+
+      if (session?.user) {
+        // Build up user from profiles
+        const newUser = await loadUserProfile(session.user);
+        setUser(newUser);
+      } else {
+        setUser(null);
+      }
+
+      setLoading(false);
+    });
 
     return () => {
       subscription?.unsubscribe();
@@ -123,18 +128,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       setLoading(true);
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) {
-        throw signInError;
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        console.error("[AuthContext] login error:", authError);
+        setError(authError.message);
+        setLoading(false);
+        throw authError;
       }
 
-      if (data?.user) {
-        const userData = await createUserFromSession(data.user);
-        setUser(userData);
-      }
+      // We do NOT manually setUser here since onAuthStateChange will handle it
+      console.log("[AuthContext] login success, waiting for onAuthStateChange to update user...");
     } catch (err: any) {
-      console.error('[AuthContext] Login error:', err);
-      setError(err.message || 'Failed to log in');
+      console.error("[AuthContext] login exception:", err);
+      setError(err?.message || "Failed to log in");
       throw err;
     } finally {
       setLoading(false);
@@ -147,25 +157,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       setLoading(true);
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`
-        }
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
       });
 
-      if (signUpError) {
-        throw signUpError;
+      if (authError) {
+        console.error("[AuthContext] register error:", authError);
+        setError(authError.message);
+        setLoading(false);
+        throw authError;
       }
 
-      if (data?.user) {
-        const userData = await createUserFromSession(data.user);
-        setUser(userData);
-      }
+      console.log("[AuthContext] register success, waiting for onAuthStateChange to update user...");
     } catch (err: any) {
-      console.error('[AuthContext] Registration error:', err);
-      setError(err.message || 'Failed to register');
+      console.error("[AuthContext] register exception:", err);
+      setError(err?.message || "Failed to register");
       throw err;
     } finally {
       setLoading(false);
@@ -175,15 +185,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      console.log('[AuthContext] Logging out');
+      console.log("[AuthContext] Logging out...");
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) {
-        throw error;
+        console.error("[AuthContext] logout error:", error);
+        setError(error.message);
+      } else {
+        console.log("[AuthContext] logout success");
+        setUser(null);
       }
-      setUser(null);
     } catch (err: any) {
-      console.error('[AuthContext] Logout error:', err);
-      setError(err.message || 'Failed to log out');
+      console.error("[AuthContext] logout exception:", err);
+      setError(err?.message || "Failed to log out");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -195,7 +211,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         register,
         logout,
         loading,
-        error
+        error,
       }}
     >
       {children}
@@ -203,5 +219,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-// Custom hook to use auth context
 export const useAuth = () => useContext(AuthContext);

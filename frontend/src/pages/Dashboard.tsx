@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { z } from 'zod';
 import auditService from '../services/auditService';
-import { Audit, mapStatusForDisplay, Task } from '../types/index';
+import { Audit, mapStatusForDisplay, Task, AuditStatus } from '../types/index';
 import AddIcon from '@mui/icons-material/Add';
 import Lock from '@mui/icons-material/Lock';
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -109,10 +109,33 @@ const Dashboard: React.FC = () => {
         
         if (!userId) {
           console.log('[Dashboard] No user ID in context, checking Supabase session directly');
+          
+          // First try getting user from active session
           const { data } = await supabase.auth.getSession();
           if (data?.session?.user?.id) {
             userId = data.session.user.id;
             console.log('[Dashboard] Found user ID from Supabase session:', userId);
+          } else {
+            // Fallback - check localStorage directly for auth token
+            console.log('[Dashboard] No session found, checking localStorage for auth token');
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.includes('supabase.auth.token')) {
+                try {
+                  const tokenStr = localStorage.getItem(key);
+                  if (tokenStr) {
+                    const tokenData = JSON.parse(tokenStr);
+                    if (tokenData?.currentSession?.user?.id) {
+                      userId = tokenData.currentSession.user.id;
+                      console.log('[Dashboard] Found user ID from localStorage token:', userId);
+                      break;
+                    }
+                  }
+                } catch (error) {
+                  console.error('[Dashboard] Error parsing token from localStorage:', error);
+                }
+              }
+            }
           }
         } else {
           console.log('[Dashboard] Using user ID from context:', userId);
@@ -125,10 +148,55 @@ const Dashboard: React.FC = () => {
           setRecentAudits([]);
           return;
         }
+
+        // DIRECTLY USE userId FOR MANUAL DB CALL - bypass auditService
+        console.log('[Dashboard] Making direct Supabase query with user ID:', userId);
+        const { data: auditData, error } = await supabase
+          .from('audits')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error('[Dashboard] Error fetching audits directly:', error);
+          setIsLoading(false);
+          setTasks([]);
+          setRecentAudits([]);
+          return;
+        }
         
-        console.log('[Dashboard] Fetching audits for user:', userId);
-        const audits = await auditService.getAudits();
-        console.log('[Dashboard] Audits received:', audits);
+        console.log('[Dashboard] Audits received directly:', auditData);
+        
+        if (!auditData || auditData.length === 0) {
+          console.log('[Dashboard] No audits found for user');
+          setIsLoading(false);
+          setTasks([]);
+          setRecentAudits([]);
+          return;
+        }
+          
+        // Convert raw database objects to Audit type
+        const audits = auditData.map(item => ({
+          id: item.id,
+          user_id: item.user_id,
+          name: item.name || item.model_name || '',
+          model_name: item.model_name,
+          model_type: item.model_type,
+          description: item.description,
+          file_path: item.file_path,
+          audit_type: item.audit_type,
+          results: item.results,
+          original_filename: item.original_filename,
+          status: (item.status as AuditStatus) || 'pending',
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          completed_at: item.completed_at,
+          risk_score: (item.score || item.risk_score || 0) as number,
+          score: (item.score || 0) as number,
+          summary: item.summary,
+          audit_result: item.audit_result,
+          error_message: item.error_message
+        }));
         
         // Convert audits to the format expected by the DataTable
         const formattedTasks = convertAuditsToTasks(audits, isUserPaid);

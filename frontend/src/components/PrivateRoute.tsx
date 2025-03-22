@@ -13,9 +13,33 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const [localAuthChecked, setLocalAuthChecked] = useState(false);
   const [isLocallyAuthenticated, setIsLocallyAuthenticated] = useState(false);
   
-  // Check localStorage for auth flags immediately
+  // Check all possible authentication sources immediately
   useEffect(() => {
-    console.log('PrivateRoute - Checking localStorage and sessionStorage for authentication flags');
+    console.log('PrivateRoute - Checking all possible authentication sources');
+    
+    // Check URL parameters first (fastest method)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isUrlAuthenticated = urlParams.get('authenticated') === 'true';
+    const urlTimestamp = urlParams.get('ts');
+    
+    // Validate timestamp is recent (last 5 minutes)
+    let isUrlAuthValid = false;
+    if (isUrlAuthenticated && urlTimestamp) {
+      const now = Date.now();
+      const timestamp = parseInt(urlTimestamp, 10);
+      const fiveMinutesMs = 5 * 60 * 1000;
+      isUrlAuthValid = !isNaN(timestamp) && (now - timestamp < fiveMinutesMs);
+      console.log('PrivateRoute - URL authentication found:', { isUrlAuthenticated, timestamp, isValid: isUrlAuthValid });
+    }
+    
+    // If URL has valid auth params, immediately set flags in both storage types
+    if (isUrlAuthValid) {
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('lastAuthTime', urlTimestamp);
+      sessionStorage.setItem('isAuthenticated', 'true');
+      sessionStorage.setItem('lastAuthTime', urlTimestamp);
+    }
+    
     const isLocalAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
     const isSessionAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
     
@@ -65,15 +89,23 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
       console.error('Error checking Supabase session:', e);
     }
     
-    const isAuthenticated = isLocalAuthenticated || isSessionAuthenticated || hasSupabaseSession;
+    const isAuthenticated = isUrlAuthValid || isLocalAuthenticated || isSessionAuthenticated || hasSupabaseSession;
     setIsLocallyAuthenticated(isAuthenticated);
     setLocalAuthChecked(true);
     console.log('PrivateRoute - Local auth check result:', { 
+      isUrlAuthValid,
       isLocalAuthenticated, 
       isSessionAuthenticated, 
       hasSupabaseSession,
       isAuthenticated 
     });
+
+    // If authenticated via URL, clean up the URL by removing the auth params
+    if (isUrlAuthValid && isAuthenticated) {
+      // Use history.replaceState to remove the query parameters without a page reload
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
   }, []);
   
   console.log('PrivateRoute - User:', user ? `Authenticated as ${user.email}` : 'Not authenticated');

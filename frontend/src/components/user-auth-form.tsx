@@ -52,9 +52,12 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
     sessionStorage.setItem('isAuthenticated', 'true');
     sessionStorage.setItem('lastAuthTime', Date.now().toString());
     
-    // Force immediate hard redirect BEFORE login even completes
+    // Create a timestamp that will be used to validate the redirect
+    const authTimestamp = Date.now().toString();
+    
+    // Force immediate hard redirect WITH authentication parameter in URL
     console.log('UserAuthForm - CRITICAL REDIRECT: Forcing navigation to dashboard IMMEDIATELY');
-    window.location.replace('/dashboard');
+    window.location.replace(`/dashboard?authenticated=true&ts=${authTimestamp}`);
     
     try {
       console.log(`UserAuthForm - Attempting ${isRegister ? 'registration' : 'login'} with email: ${email}`);

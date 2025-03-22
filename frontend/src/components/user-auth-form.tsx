@@ -20,6 +20,13 @@ export function UserAuthForm({ isRegister = false }: UserAuthFormProps) {
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
+  
+  // Generate unique IDs for this form instance
+  const formId = React.useId()
+  const emailInputId = `email-${formId}`
+  const passwordInputId = `password-${formId}`
+  const firstNameInputId = `first-name-${formId}`
+  const lastNameInputId = `last-name-${formId}`
 
   // Redirect when user state changes
   useEffect(() => {
@@ -72,11 +79,11 @@ export function UserAuthForm({ isRegister = false }: UserAuthFormProps) {
 
       {isRegister && (
         <div className="space-y-2">
-          <Label htmlFor="register-first-name" className="text-sm font-medium">
+          <Label htmlFor={firstNameInputId} className="text-sm font-medium">
             First Name
           </Label>
           <Input
-            id="register-first-name"
+            id={firstNameInputId}
             type="text"
             placeholder="First name"
             autoCapitalize="words"
@@ -89,11 +96,11 @@ export function UserAuthForm({ isRegister = false }: UserAuthFormProps) {
 
       {isRegister && (
         <div className="space-y-2">
-          <Label htmlFor="register-last-name" className="text-sm font-medium">
+          <Label htmlFor={lastNameInputId} className="text-sm font-medium">
             Last Name
           </Label>
           <Input
-            id="register-last-name"
+            id={lastNameInputId}
             type="text"
             placeholder="Last name"
             autoCapitalize="words"
@@ -106,13 +113,13 @@ export function UserAuthForm({ isRegister = false }: UserAuthFormProps) {
 
       <div className="space-y-2">
         <Label
-          htmlFor={isRegister ? "register-email" : "login-email"}
+          htmlFor={emailInputId}
           className="text-sm font-medium"
         >
           Email
         </Label>
         <Input
-          id={isRegister ? "register-email" : "login-email"}
+          id={emailInputId}
           type="email"
           placeholder="name@example.com"
           autoCapitalize="none"
@@ -126,13 +133,13 @@ export function UserAuthForm({ isRegister = false }: UserAuthFormProps) {
 
       <div className="space-y-2">
         <Label
-          htmlFor={isRegister ? "register-password" : "login-password"}
+          htmlFor={passwordInputId}
           className="text-sm font-medium"
         >
           Password
         </Label>
         <Input
-          id={isRegister ? "register-password" : "login-password"}
+          id={passwordInputId}
           type="password"
           placeholder="Password"
           autoComplete={isRegister ? "new-password" : "current-password"}

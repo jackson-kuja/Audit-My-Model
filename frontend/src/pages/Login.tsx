@@ -3,8 +3,9 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { cn } from "../lib/utils";
 import { UserAuthForm } from '../components/user-auth-form';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/button';
+import { AuthRedirect } from '../components/AuthRedirect';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { Button } from '../components/ui/button';
 // Create a simple Alert component since we don't have the UI component
 const Alert = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <div className={`p-4 border rounded-md mb-4 ${className}`}>{children}</div>
@@ -42,6 +43,9 @@ const Login: React.FC = () => {
 
   return (
     <div className="w-full h-screen">
+      {/* Add AuthRedirect component to handle redirects */}
+      <AuthRedirect />
+      
       <div className="container relative hidden h-full flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
         <RouterLink
           to="/signup"

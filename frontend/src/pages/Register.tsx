@@ -5,6 +5,7 @@ import { UserAuthForm } from '../components/user-auth-form';
 import { Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { AuthRedirect } from '../components/AuthRedirect';
 
 const Register: React.FC = () => {
   const theme = useTheme();
@@ -12,6 +13,9 @@ const Register: React.FC = () => {
 
   return (
     <div className="w-full h-screen">
+      {/* Add AuthRedirect component to handle redirects */}
+      <AuthRedirect />
+      
       <div className="container relative hidden h-full flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
         <RouterLink
           to="/login"

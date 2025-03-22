@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 5001",
+    "prebuild": "npm install --save-dev typescript @types/react",
     "build": "next build",
     "start": "next start -p 5001",
     "lint": "next lint"

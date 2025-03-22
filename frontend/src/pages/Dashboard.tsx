@@ -7,6 +7,7 @@ import { Audit, mapStatusForDisplay, Task } from '../types/index';
 import AddIcon from '@mui/icons-material/Add';
 import Lock from '@mui/icons-material/Lock';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { supabase } from '../utils/supabase';
 
 // Shadcn UI Components
 import { Button } from '../components/ui/button';
@@ -103,7 +104,29 @@ const Dashboard: React.FC = () => {
     const fetchAudits = async () => {
       try {
         setIsLoading(true);
-        console.log('[Dashboard] Fetching audits for user:', user?.id);
+        // Get user session directly from Supabase if user context is not available
+        let userId = user?.id;
+        
+        if (!userId) {
+          console.log('[Dashboard] No user ID in context, checking Supabase session directly');
+          const { data } = await supabase.auth.getSession();
+          if (data?.session?.user?.id) {
+            userId = data.session.user.id;
+            console.log('[Dashboard] Found user ID from Supabase session:', userId);
+          }
+        } else {
+          console.log('[Dashboard] Using user ID from context:', userId);
+        }
+        
+        if (!userId) {
+          console.log('[Dashboard] No user ID available, cannot fetch audits');
+          setIsLoading(false);
+          setTasks([]);
+          setRecentAudits([]);
+          return;
+        }
+        
+        console.log('[Dashboard] Fetching audits for user:', userId);
         const audits = await auditService.getAudits();
         console.log('[Dashboard] Audits received:', audits);
         
@@ -121,23 +144,18 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    if (user && user.id) {
-      console.log('[Dashboard] User authenticated, fetching audits');
-      fetchAudits();
-    } else {
-      console.log('[Dashboard] No user ID available yet, waiting...');
-      // Set a short timeout to check again if user might be loading
-      const timer = setTimeout(() => {
-        if (user && user.id) {
-          console.log('[Dashboard] User loaded after delay, fetching audits');
-          fetchAudits();
-        } else {
-          console.log('[Dashboard] Still no user after delay');
-          setIsLoading(false); // Stop loading spinner if no user after delay
-        }
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
+    // Always try to fetch audits immediately
+    fetchAudits();
+    
+    // Set a retry timer if we're still loading after a delay
+    const retryTimer = setTimeout(() => {
+      if (isLoading) {
+        console.log('[Dashboard] Retrying audit fetch after delay');
+        fetchAudits();
+      }
+    }, 3000);
+    
+    return () => clearTimeout(retryTimer);
   }, [user, isUserPaid]);
 
   // Handle clicking on an audit card

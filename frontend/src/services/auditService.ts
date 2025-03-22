@@ -13,19 +13,52 @@ const auditService = {
   async getAudits(): Promise<Audit[]> {
     console.log('[Frontend] Getting all audits');
     try {
-      // Log user authentication status
+      // Try multiple approaches to get the user ID
+      let userId: string | undefined;
+      
+      // First approach: Get user directly
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('[Frontend] Error getting user:', userError);
-        throw userError;
+      if (userData?.user?.id) {
+        userId = userData.user.id;
+        console.log('[Frontend] Found user ID from auth.getUser():', userId);
+      } else if (userError) {
+        console.warn('[Frontend] Error getting user:', userError);
       }
       
-      if (!userData?.user?.id) {
-        console.error('[Frontend] No authenticated user found');
+      // Second approach: Try getting from session if first approach failed
+      if (!userId) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user?.id) {
+          userId = sessionData.session.user.id;
+          console.log('[Frontend] Found user ID from auth.getSession():', userId);
+        }
+      }
+      
+      // Last attempt: Check localStorage directly for auth token
+      if (!userId) {
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes('supabase.auth.token')) {
+              const tokenData = JSON.parse(localStorage.getItem(key) || '{}');
+              if (tokenData?.currentSession?.user?.id) {
+                userId = tokenData.currentSession.user.id;
+                console.log('[Frontend] Found user ID from localStorage:', userId);
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[Frontend] Error parsing localStorage tokens:', e);
+        }
+      }
+      
+      // If we still don't have a user ID, we can't fetch audits
+      if (!userId) {
+        console.error('[Frontend] No authenticated user found after all attempts');
         return [];
       }
       
-      const userId = userData.user.id;
       console.log('[Frontend] Fetching audits for user:', userId);
       
       // Get audits with more detailed logging and filter by user_id

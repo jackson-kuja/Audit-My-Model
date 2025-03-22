@@ -45,6 +45,14 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
     setError(null);
     setIsLoading(true);
 
+    // Set authentication flag immediately - this will be detected by our early scripts
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('lastAuthTime', Date.now().toString());
+    
+    // Force immediate hard redirect BEFORE login even completes
+    console.log('UserAuthForm - CRITICAL REDIRECT: Forcing navigation to dashboard IMMEDIATELY');
+    window.location.replace('/dashboard');
+    
     try {
       console.log(`UserAuthForm - Attempting ${isRegister ? 'registration' : 'login'} with email: ${email}`);
       
@@ -55,30 +63,21 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
         
         await register(email, password);
         console.log('UserAuthForm - Registration successful');
-        
-        // Force immediate redirect with both methods
-        console.log('UserAuthForm - Forcing immediate redirect to dashboard');
-        navigate('/dashboard');
-        setTimeout(() => window.location.href = '/dashboard', 500); // Fallback redirect
       } else {
         console.log('UserAuthForm - Calling login function');
         await login(email, password);
         console.log('UserAuthForm - Login successful');
         console.log('UserAuthForm - User state after login:', { user });
-        
-        // Force immediate redirect with both methods
-        console.log('UserAuthForm - Forcing immediate redirect to dashboard');
-        navigate('/dashboard');
-        setTimeout(() => window.location.href = '/dashboard', 500); // Fallback redirect
       }
       
-      // Regular redirect will be triggered by the useEffect when user state changes
-      console.log('UserAuthForm - Waiting for user state update before redirect');
+      // This point should never be reached as we already redirected
       
     } catch (err) {
       console.error(`UserAuthForm - ${isRegister ? 'Registration' : 'Login'} error:`, err);
       setError(err instanceof Error ? err.message : 'Authentication failed');
-    } finally {
+      // Remove the auth flag if login fails
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('lastAuthTime');
       setIsLoading(false);
     }
   }

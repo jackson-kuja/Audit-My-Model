@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 import { cn } from "../lib/utils";
 import { Icons } from "./icons";
@@ -21,14 +22,15 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
   const [error, setError] = React.useState<string | null>(null);
   
   const { login, register, user } = useAuth();
+  const navigate = useNavigate();
 
   // If user is already authenticated, redirect to dashboard
   React.useEffect(() => {
     if (user) {
       console.log('UserAuthForm - User already authenticated, redirecting to dashboard');
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
     }
-  }, [user]);
+  }, [user, navigate]);
 
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();

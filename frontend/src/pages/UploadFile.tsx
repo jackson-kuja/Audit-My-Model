@@ -103,7 +103,7 @@ const UploadFile: React.FC = () => {
       // Test connection to backend
       try {
         console.log('🚀 UploadFile - Testing connection to backend API...');
-        const testResponse = await fetch('http://localhost:5001/api/audits', {
+        const testResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/audits`, {
           method: 'OPTIONS'
         });
         console.log('🚀 UploadFile - Test response status:', testResponse.status);

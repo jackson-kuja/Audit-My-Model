@@ -15,39 +15,36 @@ interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function UserAuthForm({ className, isRegister = false, ...props }: UserAuthFormProps) {
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const { user, login, register, loading, error } = useAuth();
+  const navigate = useNavigate();
+
   const [email, setEmail] = React.useState<string>("");
   const [password, setPassword] = React.useState<string>("");
   const [confirmPassword, setConfirmPassword] = React.useState<string>("");
-  const [error, setError] = React.useState<string | null>(null);
-  
-  const { login, register, user } = useAuth();
-  const navigate = useNavigate();
+  const [localError, setLocalError] = React.useState<string | null>(null);
 
-  // Generate unique IDs for form fields to avoid DOM conflicts
-  const idPrefix = React.useId();
-
-  // If user is already authenticated, redirect to dashboard
+  // On mount or user changes, redirect if user is not null
   React.useEffect(() => {
-    console.log('UserAuthForm - useEffect [user]:', { user, isLoading });
-    if (user) {
-      console.log('UserAuthForm - User already authenticated, redirecting to dashboard');
-      console.log('UserAuthForm - User data:', user);
-      console.log('UserAuthForm - Current location:', window.location.pathname);
-      console.log('UserAuthForm - Calling navigate("/dashboard")');
-      navigate('/dashboard');
-      console.log('UserAuthForm - Navigate called');
+    console.log("UserAuthForm - useEffect [user]:", { user, isLoading: loading });
+    if (!loading && user) {
+      // If user is already logged in, redirect
+      console.log("UserAuthForm - User detected, redirecting to dashboard");
+      navigate("/dashboard");
     }
-  }, [user, navigate, isLoading]);
+  }, [user, loading, navigate]);
 
-  async function onSubmit(event: React.SyntheticEvent) {
+  const handleSubmit = async (event: React.SyntheticEvent) => {
     event.preventDefault();
-    setError(null);
-    setIsLoading(true);
+    setLocalError(null);
 
     try {
-      console.log(`UserAuthForm - Attempting ${isRegister ? 'registration' : 'login'} with email: ${email}`);
-      
+      if (!email || !password) {
+        setLocalError("Email and password are required");
+        return;
+      }
+
+      console.log("UserAuthForm - Attempting login/register:", email, isRegister ? "(register)" : "(login)");
+
       if (isRegister) {
         if (password !== confirmPassword) {
           throw new Error("Passwords do not match");
@@ -67,11 +64,10 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
       navigate('/dashboard');
       
     } catch (err) {
-      console.error(`UserAuthForm - ${isRegister ? 'Registration' : 'Login'} error:`, err);
-      setError(err instanceof Error ? err.message : 'Authentication failed');
-      setIsLoading(false);
+      console.error("UserAuthForm - Auth error:", err);
+      setLocalError(err instanceof Error ? err.message : 'Authentication failed');
     }
-  }
+  };
 
   return (
     <div className={cn("grid gap-6", className)} {...props}>
@@ -81,20 +77,26 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
         </div>
       )}
       
-      <form onSubmit={onSubmit}>
+      {localError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          {localError}
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit}>
         <div className="grid gap-2">
           <div className="grid gap-1">
-            <Label className="sr-only" htmlFor={`${idPrefix}-email`}>
+            <Label className="sr-only" htmlFor={`email`}>
               Email
             </Label>
             <Input
-              id={`${idPrefix}-email`}
+              id={`email`}
               placeholder="name@example.com"
               type="email"
               autoCapitalize="none"
               autoComplete="email"
               autoCorrect="off"
-              disabled={isLoading}
+              disabled={loading}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -102,15 +104,15 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
           </div>
           
           <div className="grid gap-1">
-            <Label className="sr-only" htmlFor={`${idPrefix}-password`}>
+            <Label className="sr-only" htmlFor={`password`}>
               Password
             </Label>
             <Input
-              id={`${idPrefix}-password`}
+              id={`password`}
               placeholder="Password"
               type="password"
               autoComplete={isRegister ? "new-password" : "current-password"}
-              disabled={isLoading}
+              disabled={loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -120,15 +122,15 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
           
           {isRegister && (
             <div className="grid gap-1">
-              <Label className="sr-only" htmlFor={`${idPrefix}-confirmPassword`}>
+              <Label className="sr-only" htmlFor={`confirmPassword`}>
                 Confirm Password
               </Label>
               <Input
-                id={`${idPrefix}-confirmPassword`}
+                id={`confirmPassword`}
                 placeholder="Confirm Password"
                 type="password"
                 autoComplete="new-password"
-                disabled={isLoading}
+                disabled={loading}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
@@ -137,8 +139,8 @@ export function UserAuthForm({ className, isRegister = false, ...props }: UserAu
             </div>
           )}
           
-          <Button disabled={isLoading} type="submit">
-            {isLoading && (
+          <Button disabled={loading} type="submit">
+            {loading && (
               <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
             )}
             {isRegister ? "Create Account" : "Sign In"}

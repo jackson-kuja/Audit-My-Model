@@ -8,7 +8,6 @@ import React, {
 import { supabase } from "../utils/supabase";
 import type { User } from "../types";
 
-// Define AuthContextType
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
@@ -18,7 +17,6 @@ interface AuthContextType {
   error: string | null;
 }
 
-// Create context with default values
 const AuthContext = createContext<AuthContextType>({
   user: null,
   login: async () => {},
@@ -37,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper: load user profile from 'profiles' table
+  // Helper: load user profile from 'profiles' table or user object
   const loadUserProfile = async (sessionUser: any): Promise<User> => {
     const baseUser: User = {
       id: sessionUser.id,
@@ -49,13 +47,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     try {
-      const { data, error } = await supabase
+      // Attempt to load from "profiles" table for additional fields
+      const { data, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", sessionUser.id)
         .single();
 
-      if (!error && data) {
+      if (!profileError && data) {
         return {
           ...baseUser,
           first_name: data.first_name,
@@ -72,11 +71,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Initialize auth state and subscribe to changes
+  // Initialize auth state
   useEffect(() => {
     console.log("[AuthContext] Initializing auth state...");
 
-    // 1) Check existing session on component mount
     const getInitialSession = async () => {
       setLoading(true);
       try {
@@ -84,9 +82,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const session = data.session;
         if (session?.user) {
           // We have an active session
+          console.log("[AuthContext] Found existing session user:", session.user.email);
           const profileUser = await loadUserProfile(session.user);
           setUser(profileUser);
         } else {
+          console.log("[AuthContext] No existing session found, user is null");
           setUser(null);
         }
       } catch (err) {
@@ -99,7 +99,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     getInitialSession();
 
-    // 2) Subscribe to onAuthStateChange
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -110,7 +109,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Build up user from profiles
         const newUser = await loadUserProfile(session.user);
         setUser(newUser);
+        console.log("[AuthContext] onAuthStateChange => user is set:", newUser.email);
       } else {
+        console.log("[AuthContext] onAuthStateChange => no user, setting user to null");
         setUser(null);
       }
 
@@ -127,6 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
+      console.log("[AuthContext] login start:", email);
 
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -141,7 +143,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // We do NOT manually setUser here since onAuthStateChange will handle it
-      console.log("[AuthContext] login success, waiting for onAuthStateChange to update user...");
+      console.log("[AuthContext] login success => waiting for onAuthStateChange...");
     } catch (err: any) {
       console.error("[AuthContext] login exception:", err);
       setError(err?.message || "Failed to log in");
@@ -156,13 +158,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
+      console.log("[AuthContext] register start:", email);
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
       });
 
       if (authError) {
@@ -172,7 +172,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw authError;
       }
 
-      console.log("[AuthContext] register success, waiting for onAuthStateChange to update user...");
+      console.log("[AuthContext] register success => waiting for onAuthStateChange...");
     } catch (err: any) {
       console.error("[AuthContext] register exception:", err);
       setError(err?.message || "Failed to register");
@@ -187,12 +187,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log("[AuthContext] Logging out...");
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("[AuthContext] logout error:", error);
-        setError(error.message);
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) {
+        console.error("[AuthContext] logout error:", signOutError);
+        setError(signOutError.message);
       } else {
-        console.log("[AuthContext] logout success");
+        console.log("[AuthContext] logout success => user set to null");
         setUser(null);
       }
     } catch (err: any) {

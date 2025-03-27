@@ -2,13 +2,22 @@ import React, { useEffect } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { cn } from "../lib/utils";
 import { UserAuthForm } from '../components/user-auth-form';
-import { Typography } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useAuth } from '../context/AuthContext';
 
+const Alert = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <div className={`p-4 border rounded-md mb-4 ${className}`}>{children}</div>
+);
+
+const AlertTitle = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <h5 className={`font-medium mb-1 ${className}`}>{children}</h5>
+);
+
+const AlertDescription = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <div className={`text-sm ${className}`}>{children}</div>
+);
+
 const Signup: React.FC = () => {
-  const theme = useTheme();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   usePageTitle('Signup');
@@ -30,7 +39,7 @@ const Signup: React.FC = () => {
             "absolute right-4 top-4 md:right-8 md:top-8 text-sm font-medium underline underline-offset-4 hover:text-primary"
           )}
         >
-          Login
+          Sign In
         </RouterLink>
         <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
           <div className="absolute inset-0 bg-black" />
@@ -47,18 +56,7 @@ const Signup: React.FC = () => {
             >
               <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
             </svg>
-            <Typography
-              component="h1"
-              variant="h4"
-              align="center"
-              sx={{
-                fontWeight: 700,
-                mb: 3,
-                color: theme.palette.primary.main
-              }}
-            >
-              Audit My File
-            </Typography>
+            Audit My File
           </div>
           <div className="relative z-20 mt-auto">
             <blockquote className="space-y-2">
@@ -73,78 +71,104 @@ const Signup: React.FC = () => {
         </div>
         <div className="lg:p-8">
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-            <div className="flex flex-col space-y-2 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto h-6 w-6">
-                <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
-              </svg>
-              Audit My File
-            </div>
-            <UserAuthForm isRegister={true} />
-            <p className="px-8 text-center text-sm text-muted-foreground">
-              By clicking continue, you agree to our{" "}
-              <a
-                href="https://athenlabs.com/terms/model"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a
-                href="https://athenlabs.com/privacy/model"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                Privacy Policy
-              </a>
-              .
-            </p>
+            {!loading && user && (
+              <Alert className="bg-blue-50 border-blue-200">
+                <AlertTitle className="text-blue-800">Already logged in</AlertTitle>
+                <AlertDescription className="text-blue-700">
+                  Redirecting you to the dashboard
+                </AlertDescription>
+              </Alert>
+            )}
+            {!user && (
+              <>
+                <div className="flex flex-col space-y-2 text-center">
+                  <h1 className="text-2xl font-semibold tracking-tight">
+                    Create an account
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Enter your email below to create your account
+                  </p>
+                </div>
+                <UserAuthForm isRegister={true} />
+                <p className="px-8 text-center text-sm text-muted-foreground">
+                  By clicking continue, you agree to our{" "}
+                  <a
+                    href="https://athenlabs.com/terms/model"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="https://athenlabs.com/privacy/model"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    Privacy Policy
+                  </a>
+                  .
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
       {/* Mobile view */}
       <div className="md:hidden h-full w-full p-4 flex flex-col items-center justify-center">
         <div className="w-full max-w-md space-y-6">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Create an account
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your email below to create your account
-            </p>
-          </div>
-          <UserAuthForm isRegister={true} />
-          <p className="px-8 text-center text-sm text-muted-foreground">
-            By clicking continue, you agree to our{" "}
-            <a
-              href="https://athenlabs.com/terms/model"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a
-              href="https://athenlabs.com/privacy/model"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Privacy Policy
-            </a>
-            .
-          </p>
-          <div className="text-center">
-            <RouterLink
-              to="/login"
-              className="text-sm font-medium underline underline-offset-4 hover:text-primary"
-            >
-              Already have an account? Sign in
-            </RouterLink>
-          </div>
+          {!loading && user && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertTitle className="text-blue-800">Already logged in</AlertTitle>
+              <AlertDescription className="text-blue-700">
+                Redirecting you to the dashboard
+              </AlertDescription>
+            </Alert>
+          )}
+          {!user && (
+            <>
+              <div className="flex flex-col space-y-2 text-center">
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Create an account
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Enter your email below to create your account
+                </p>
+              </div>
+              <UserAuthForm isRegister={true} />
+              <p className="px-8 text-center text-sm text-muted-foreground">
+                By clicking continue, you agree to our{" "}
+                <a
+                  href="https://athenlabs.com/terms/model"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-4 hover:text-primary"
+                >
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a
+                  href="https://athenlabs.com/privacy/model"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-4 hover:text-primary"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </p>
+              <div className="text-center">
+                <RouterLink
+                  to="/login"
+                  className="text-sm font-medium underline underline-offset-4 hover:text-primary"
+                >
+                  Already have an account? Sign in
+                </RouterLink>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

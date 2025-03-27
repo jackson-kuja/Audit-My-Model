@@ -154,71 +154,74 @@ app.get('/api/subscription-status', async (req, res) => {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Use supabaseAdmin instead of supabase to bypass RLS
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('profiles')
-      .select('stripe_customer_id')
-      .eq('id', userId);
+    // Return inactive status by default if we encounter database schema issues
+    let subscriptionResponse = {
+      subscribed: false,
+      status: 'inactive',
+      subscription: null
+    };
 
-    if (userError) {
-      console.error('Error fetching user data:', JSON.stringify(userError, null, 2));
-      return res.status(500).json({ error: 'Error fetching user data' });
-    }
+    try {
+      // Use supabaseAdmin instead of supabase to bypass RLS
+      const { data: userData, error: userError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')  // Select all columns instead of just stripe_customer_id
+        .eq('id', userId);
 
-    // If no profile exists, treat as unsubscribed
-    if (!userData || userData.length === 0) {
-      return res.status(200).json({
-        subscribed: false,
-        status: 'inactive',
-        subscription: null
-      });
-    }
-
-    const customerId = userData[0].stripe_customer_id;
-
-    if (!customerId) {
-      return res.status(200).json({
-        subscribed: false,
-        status: 'inactive',
-        subscription: null
-      });
-    }
-
-    // Get customer's subscriptions
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: 'all',
-      expand: ['data.default_payment_method']
-    });
-
-    // Check if customer has any active subscriptions
-    const activeSubscription = subscriptions.data.find(sub => 
-      ['active', 'trialing'].includes(sub.status)
-    );
-
-    if (!activeSubscription) {
-      return res.status(200).json({
-        subscribed: false,
-        status: 'inactive',
-        subscription: null
-      });
-    }
-
-    // Return subscription details
-    return res.status(200).json({
-      subscribed: true,
-      status: activeSubscription.status,
-      subscription: {
-        id: activeSubscription.id,
-        current_period_end: new Date(activeSubscription.current_period_end * 1000).toISOString(),
-        cancel_at_period_end: activeSubscription.cancel_at_period_end,
-        plan: {
-          id: activeSubscription.items.data[0]?.price.id,
-          amount: activeSubscription.items.data[0]?.price.unit_amount,
-          interval: activeSubscription.items.data[0]?.price.recurring?.interval
+      if (userError) {
+        console.error('Error fetching user data:', JSON.stringify(userError, null, 2));
+        // Return inactive status instead of error if column doesn't exist
+        if (userError.code === '42703' && userError.message.includes('stripe_customer_id does not exist')) {
+          console.log('stripe_customer_id column not found, returning inactive status');
+          return res.status(200).json(subscriptionResponse);
         }
+        return res.status(500).json({ error: 'Error fetching user data' });
       }
-    });
+
+      if (!userData || userData.length === 0) {
+        return res.status(200).json(subscriptionResponse);
+      }
+
+      // Check if stripe_customer_id exists in the returned data
+      const customerId = userData[0].stripe_customer_id;
+
+      if (!customerId) {
+        return res.status(200).json(subscriptionResponse);
+      }
+
+      // Get customer's subscriptions
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'all',
+        expand: ['data.default_payment_method']
+      });
+
+      const activeSubscription = subscriptions.data.find(sub => 
+        ['active', 'trialing'].includes(sub.status)
+      );
+
+      if (!activeSubscription) {
+        return res.status(200).json(subscriptionResponse);
+      }
+
+      return res.status(200).json({
+        subscribed: true,
+        status: activeSubscription.status,
+        subscription: {
+          id: activeSubscription.id,
+          current_period_end: new Date(activeSubscription.current_period_end * 1000).toISOString(),
+          cancel_at_period_end: activeSubscription.cancel_at_period_end,
+          plan: {
+            id: activeSubscription.items.data[0]?.price.id,
+            amount: activeSubscription.items.data[0]?.price.unit_amount,
+            interval: activeSubscription.items.data[0]?.price.recurring?.interval
+          }
+        }
+      });
+    } catch (innerError) {
+      console.error('Error in subscription status lookup:', innerError);
+      return res.status(200).json(subscriptionResponse);
+    }
   } catch (error) {
     console.error('Error getting subscription status:', error);
     return res.status(500).json({ 
@@ -252,43 +255,99 @@ app.post('/api/create-checkout-session', async (req, res) => {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Check if user already has a Stripe customer ID - use supabaseAdmin
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('profiles')
-      .select('stripe_customer_id')
-      .eq('id', userId);
-
-    if (userError) {
-      console.error('Error fetching user data:', JSON.stringify(userError, null, 2));
-      return res.status(500).json({ error: 'Error fetching user data' });
-    }
-
+    // Create a Stripe customer ID if not exists or if schema issues
     let customerId;
-    const userProfile = userData && userData.length > 0 ? userData[0] : null;
-
-    // If user doesn't have a Stripe customer ID, create one
-    if (!userProfile?.stripe_customer_id) {
-      const customer = await stripe.customers.create({
-        email,
-        metadata: {
-          userId,
-        },
-      });
-
-      customerId = customer.id;
-
-      // Save the customer ID to the user profile
-      const { error: updateError } = await supabaseAdmin
+    
+    try {
+      // Check if user already has a Stripe customer ID - use supabaseAdmin
+      const { data: userData, error: userError } = await supabaseAdmin
         .from('profiles')
-        .update({ stripe_customer_id: customerId })
+        .select('*')  // Select all columns to check schema
         .eq('id', userId);
 
-      if (updateError) {
-        console.error('Error updating user profile:', updateError);
-        return res.status(500).json({ error: 'Error updating user profile' });
+      if (userError) {
+        console.error('Error fetching user data:', JSON.stringify(userError, null, 2));
+        // If column doesn't exist, create a new customer
+        if (userError.code === '42703' && userError.message.includes('stripe_customer_id does not exist')) {
+          console.log('stripe_customer_id column not found, creating new customer');
+          // Create a new customer if stripe_customer_id doesn't exist in schema
+          const customer = await stripe.customers.create({
+            email: email,
+            metadata: { userId: userId }
+          });
+          customerId = customer.id;
+          
+          // We cannot update the profile since the column doesn't exist
+          console.log(`Created new Stripe customer for user ${userId}: ${customerId}`);
+        } else {
+          // For other errors, return 500
+          return res.status(500).json({ error: 'Error fetching user data' });
+        }
+      } else if (!userData || userData.length === 0) {
+        // Create a new customer if user not found
+        const customer = await stripe.customers.create({
+          email: email,
+          metadata: { userId: userId }
+        });
+        customerId = customer.id;
+        
+        // Create profile if it doesn't exist
+        await supabaseAdmin
+          .from('profiles')
+          .insert([
+            { 
+              id: userId, 
+              // Only try to set stripe_customer_id if the column exists
+              ...(userData && userData[0] && 'stripe_customer_id' in userData[0] ? { stripe_customer_id: customerId } : {})
+            }
+          ]);
+        
+        console.log(`Created new profile and Stripe customer: ${customerId}`);
+      } else {
+        // Check if stripe_customer_id exists in the schema
+        if (userData[0] && 'stripe_customer_id' in userData[0]) {
+          customerId = userData[0].stripe_customer_id;
+          
+          // If no customer ID saved yet, create one
+          if (!customerId) {
+            const customer = await stripe.customers.create({
+              email: email,
+              metadata: { userId: userId }
+            });
+            customerId = customer.id;
+            
+            // Update the user's customer ID in Supabase
+            await supabaseAdmin
+              .from('profiles')
+              .update({ stripe_customer_id: customerId })
+              .eq('id', userId);
+            
+            console.log(`Updated user ${userId} with new Stripe customer: ${customerId}`);
+          }
+        } else {
+          // Create a new customer if stripe_customer_id isn't in the schema
+          const customer = await stripe.customers.create({
+            email: email,
+            metadata: { userId: userId }
+          });
+          customerId = customer.id;
+          console.log(`Created new Stripe customer (schema issue): ${customerId}`);
+        }
       }
-    } else {
-      customerId = userProfile.stripe_customer_id;
+    } catch (customerError) {
+      console.error('Error managing Stripe customer:', customerError);
+      // Create a new customer as fallback
+      try {
+        const customer = await stripe.customers.create({
+          email: email,
+          metadata: { userId: userId }
+        });
+        customerId = customer.id;
+        console.log(`Created fallback Stripe customer: ${customerId}`);
+      } catch (fallbackError) {
+        console.error('Error creating fallback customer:', fallbackError);
+        return res.status(500).json({ error: 'Failed to create Stripe customer' });
+      }
     }
 
     // Create checkout session
@@ -302,17 +361,16 @@ app.post('/api/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      discounts: finalCouponId ? [{ coupon: finalCouponId }] : [],
-      success_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.auditmyfile.com'}/profile?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.auditmyfile.com'}/profile?canceled=true`,
+      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin}/settings`,
+      allow_promotion_codes: true,
+      ...(finalCouponId ? { discounts: [{ coupon: finalCouponId }] } : {})
     });
 
-    return res.status(200).json({ sessionId: session.id });
+    res.status(200).json({ sessionId: session.id });
   } catch (error) {
     console.error('Error creating checkout session:', error);
-    return res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'An error occurred' 
-    });
+    res.status(500).json({ error: error instanceof Error ? error.message : 'An error occurred' });
   }
 });
 

@@ -15,7 +15,7 @@ const getSupabaseConfig = () => {
   return { url, key };
 };
 
-// Create a type for our supabase client
+// Create a single instance of the Supabase client
 const createSupabaseClient = () => {
   try {
     const { url, key } = getSupabaseConfig();
@@ -25,8 +25,16 @@ const createSupabaseClient = () => {
         storageKey: 'supabase_auth_token',
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        storage: localStorage,
+        flowType: 'pkce',
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'frontend'
+        }
       }
     });
+    
     console.log('Supabase client created successfully');
     return client;
   } catch (error) {
@@ -35,4 +43,5 @@ const createSupabaseClient = () => {
   }
 };
 
+// Ensure we only create one instance
 export const supabase = createSupabaseClient();

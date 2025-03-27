@@ -34,9 +34,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   // Helper: load user profile from 'profiles' table or user object
-  const loadUserProfile = async (sessionUser: any): Promise<User> => {
+  const loadUserProfile = async (sessionUser: any): Promise<User | null> => {
+    if (!sessionUser) return null;
+    
     const baseUser: User = {
       id: sessionUser.id,
       email: sessionUser.email || "",
@@ -54,7 +57,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .eq("id", sessionUser.id)
         .single();
 
-      if (!profileError && data) {
+      if (profileError) {
+        console.warn("[AuthContext] Profile fetch error:", profileError.message);
+        return baseUser;
+      }
+      
+      if (data) {
         return {
           ...baseUser,
           first_name: data.first_name,
@@ -71,54 +79,85 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Initialize auth state
+  // Handle auth state changes
   useEffect(() => {
+    let mounted = true;
     console.log("[AuthContext] Initializing auth state...");
 
     const getInitialSession = async () => {
+      if (!mounted) return;
       setLoading(true);
+
       try {
-        const { data } = await supabase.auth.getSession();
+        // Explicitly get the current session
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("[AuthContext] Session fetch error:", error);
+          throw error;
+        }
+        
         const session = data.session;
+        
         if (session?.user) {
-          // We have an active session
           console.log("[AuthContext] Found existing session user:", session.user.email);
-          const profileUser = await loadUserProfile(session.user);
-          setUser(profileUser);
+          
+          try {
+            const profileUser = await loadUserProfile(session.user);
+            if (mounted) setUser(profileUser);
+          } catch (profileErr) {
+            console.error("[AuthContext] Profile load error:", profileErr);
+            if (mounted) setUser(null);
+          }
         } else {
           console.log("[AuthContext] No existing session found, user is null");
-          setUser(null);
+          if (mounted) setUser(null);
         }
       } catch (err) {
         console.error("[AuthContext] getInitialSession error:", err);
-        setUser(null);
+        if (mounted) {
+          setUser(null);
+          setError("Failed to restore session");
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setInitialized(true);
+        }
       }
     };
 
-    getInitialSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[AuthContext] onAuthStateChange event:", event);
+      
+      if (!mounted) return;
+      if (!initialized) return; // Skip if initial load is still in progress
+
       setLoading(true);
 
-      if (session?.user) {
-        // Build up user from profiles
-        const newUser = await loadUserProfile(session.user);
-        setUser(newUser);
-        console.log("[AuthContext] onAuthStateChange => user is set:", newUser.email);
-      } else {
-        console.log("[AuthContext] onAuthStateChange => no user, setting user to null");
-        setUser(null);
+      try {
+        if (session?.user) {
+          const profileUser = await loadUserProfile(session.user);
+          if (mounted) setUser(profileUser);
+          console.log("[AuthContext] onAuthStateChange => user is set:", profileUser?.email);
+        } else {
+          console.log("[AuthContext] onAuthStateChange => no user, setting user to null");
+          if (mounted) setUser(null);
+        }
+      } catch (err) {
+        console.error("[AuthContext] Error in auth state change handler:", err);
+        if (mounted) setUser(null);
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      setLoading(false);
     });
 
+    // Start the process
+    getInitialSession();
+
     return () => {
+      mounted = false;
       subscription?.unsubscribe();
     };
   }, []);
@@ -138,7 +177,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (authError) {
         console.error("[AuthContext] login error:", authError);
         setError(authError.message);
-        setLoading(false);
         throw authError;
       }
 
@@ -168,7 +206,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (authError) {
         console.error("[AuthContext] register error:", authError);
         setError(authError.message);
-        setLoading(false);
         throw authError;
       }
 

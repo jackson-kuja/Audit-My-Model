@@ -695,19 +695,6 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
                   </Badge>
                 </div>
                 
-                <div className="flex items-baseline justify-between mb-4">
-                  <div>
-                    <span className="text-3xl font-bold">$28.50</span>
-                    <span className="text-muted-foreground ml-1">/month</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="line-through text-muted-foreground">$95.00</span>
-                    <span className="ml-1 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                      70% off
-                    </span>
-                  </div>
-                </div>
-                
                 <Button 
                   className="w-full" 
                   onClick={handleCheckout}

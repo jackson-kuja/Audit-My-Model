@@ -136,26 +136,16 @@ const Upload: React.FC = () => {
     status: 'idle',
   });
   const [error, setError] = useState<string | null>(null);
-  
-  // State to hold animation configuration
-  const [firstAnimationSrc, setFirstAnimationSrc] = useState('/images/upload_file_xls.riv');
-  
-  // Update animation source when file type changes
-  useEffect(() => {
-    if (fileType === 'excel') {
-      setFirstAnimationSrc('/images/ExcelOne.riv');
-    } else if (fileType === 'powerpoint') {
-      setFirstAnimationSrc('/images/PowerPointOne.riv');
-    } else if (fileType === 'word') {
-      setFirstAnimationSrc('/images/WordOne.riv');
-    } else {
-      setFirstAnimationSrc('/images/upload_file_xls.riv');
-    }
-  }, [fileType]);
 
   // Rive animation for step 1 to step 2
   const { RiveComponent: Step1Animation, rive: rive1 } = useRive({
-    src: firstAnimationSrc,
+    src: fileType === 'excel' 
+      ? '/images/ExcelOne.riv'
+      : fileType === 'powerpoint'
+        ? '/images/PowerPointOne.riv'
+        : fileType === 'word'
+          ? '/images/WordOne.riv'
+          : '/images/upload_file_xls.riv',
     autoplay: true,
     layout: new Layout({
       fit: Fit.FitHeight,
@@ -711,7 +701,7 @@ const Upload: React.FC = () => {
   const renderAnimationForStep = (step: StepType) => {
     switch (step) {
       case 'animation-1':
-        return <Step1Animation key={fileType} />;
+        return <Step1Animation />;
       case 'animation-2':
         return <Step2Animation />;
       case 'animation-3':

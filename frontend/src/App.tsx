@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { SubscriptionProvider } from './context/SubscriptionContext';
 import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from './components/ui/toaster';
 
@@ -45,70 +46,72 @@ const App: React.FC = () => {
   return (
     <ThemeProvider defaultTheme="system" storageKey="audit-my-model-theme">
       <AuthProvider>
-        <Router>
-          <div className="min-h-screen bg-background">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/supabase-config" element={<SupabaseConfig />} />
-              <Route path="/test" element={<TestPage />} />
+        <SubscriptionProvider>
+          <Router>
+            <div className="min-h-screen bg-background">
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/supabase-config" element={<SupabaseConfig />} />
+                <Route path="/test" element={<TestPage />} />
 
-              {/* Protected Routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <PrivateRoute>
-                    <DashboardLayout>
-                      <Dashboard />
-                    </DashboardLayout>
-                  </PrivateRoute>
-                }
-              />
+                {/* Protected Routes */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout>
+                        <Dashboard />
+                      </DashboardLayout>
+                    </PrivateRoute>
+                  }
+                />
 
-              <Route
-                path="/upload"
-                element={
-                  <PrivateRoute>
-                    <PageWithNavbar>
-                      <Upload />
-                    </PageWithNavbar>
-                  </PrivateRoute>
-                }
-              />
+                <Route
+                  path="/upload"
+                  element={
+                    <PrivateRoute>
+                      <PageWithNavbar>
+                        <Upload />
+                      </PageWithNavbar>
+                    </PrivateRoute>
+                  }
+                />
 
-              <Route
-                path="/audit/:id"
-                element={
-                  <PrivateRoute>
-                    <PageWithNavbar>
-                      <AuditDetailContainer />
-                    </PageWithNavbar>
-                  </PrivateRoute>
-                }
-              />
+                <Route
+                  path="/audit/:id"
+                  element={
+                    <PrivateRoute>
+                      <PageWithNavbar>
+                        <AuditDetailContainer />
+                      </PageWithNavbar>
+                    </PrivateRoute>
+                  }
+                />
 
-              <Route
-                path="/profile"
-                element={
-                  <PrivateRoute>
-                    <PageWithNavbar>
-                      <Profile />
-                    </PageWithNavbar>
-                  </PrivateRoute>
-                }
-              />
+                <Route
+                  path="/profile"
+                  element={
+                    <PrivateRoute>
+                      <PageWithNavbar>
+                        <Profile />
+                      </PageWithNavbar>
+                    </PrivateRoute>
+                  }
+                />
 
-              {/* Redirect root to dashboard */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                {/* Redirect root to dashboard */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-              {/* 404 Page */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* 404 Page */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
 
-            <Toaster />
-          </div>
-        </Router>
+              <Toaster />
+            </div>
+          </Router>
+        </SubscriptionProvider>
       </AuthProvider>
     </ThemeProvider>
   );

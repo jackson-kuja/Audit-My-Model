@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AddIcon from '@mui/icons-material/Add';
@@ -26,6 +27,7 @@ interface NavItem {
 
 const Header = () => {
   const { user, logout } = useAuth();
+  const { isPro } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -113,6 +115,29 @@ const Header = () => {
                 }}
               >
                 Audit My File
+                {isPro && (
+                  <Box
+                    component="span"
+                    sx={{
+                      ml: 1,
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1,
+                      fontSize: '0.6rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      color: '#ffffff',
+                      background: 'linear-gradient(90deg, #6366F1 0%, #8B5CF6 100%)',
+                      boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    Pro
+                  </Box>
+                )}
               </Typography>
               <Box 
                 sx={{ 
@@ -248,6 +273,41 @@ const Header = () => {
                       marginRight: '4px'
                     }}
                   />
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: '1.1rem',
+                      color: theme.palette.primary.main,
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    Audit My File
+                    {isPro && (
+                      <Box
+                        component="span"
+                        sx={{
+                          ml: 1,
+                          px: 1,
+                          py: 0.25,
+                          borderRadius: 1,
+                          fontSize: '0.6rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: '#ffffff',
+                          background: 'linear-gradient(90deg, #6366F1 0%, #8B5CF6 100%)',
+                          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          letterSpacing: '0.05em',
+                        }}
+                      >
+                        Pro
+                      </Box>
+                    )}
+                  </Typography>
                 </Box>
 
                 {/* The rest of the mobile menu with New Audit button and navigation icons */}

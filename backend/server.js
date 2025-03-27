@@ -368,8 +368,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin}/settings`,
+      success_url: `${req.headers.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin}/profile`,
       ...(finalCouponId 
         ? { discounts: [{ coupon: finalCouponId }] } 
         : { allow_promotion_codes: true })

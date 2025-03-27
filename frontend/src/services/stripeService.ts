@@ -10,12 +10,15 @@ const PRODUCT_ID = process.env.REACT_APP_STRIPE_PRODUCT_ID || '';
 const PRICE_ID = process.env.REACT_APP_STRIPE_PRICE_ID || '';
 const COUPON_ID = process.env.REACT_APP_STRIPE_COUPON_ID || '';
 
+// Backend API URL
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://audit-my-file.onrender.com';
+
 const stripeService = {
   // Create a checkout session for subscription
   createCheckoutSession: async (userId: string, email: string) => {
     try {
       // Make a request to your backend to create a checkout session
-      const response = await fetch('/api/create-checkout-session', {
+      const response = await fetch(`${BACKEND_URL}/api/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +70,7 @@ const stripeService = {
   // Get current subscription status
   getSubscriptionStatus: async (userId: string) => {
     try {
-      const response = await fetch(`/api/subscription-status?userId=${userId}`);
+      const response = await fetch(`${BACKEND_URL}/api/subscription-status?userId=${userId}`);
       const data = await response.json();
 
       if (data.error) {
@@ -84,7 +87,7 @@ const stripeService = {
   // Cancel a subscription
   cancelSubscription: async (subscriptionId: string) => {
     try {
-      const response = await fetch('/api/cancel-subscription', {
+      const response = await fetch(`${BACKEND_URL}/api/cancel-subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

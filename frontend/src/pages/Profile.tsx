@@ -120,6 +120,8 @@ const settingsNavItems = [
   }
 ];
 
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://audit-my-file.onrender.com';
+
 const Profile: React.FC = () => {
   usePageTitle('Profile');
   const { user, logout } = useAuth();
@@ -472,7 +474,7 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
     const fetchSubscriptionStatus = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/subscription-status?userId=${user.id}`);
+        const response = await fetch(`${BACKEND_URL}/api/subscription-status?userId=${user.id}`);
         const data = await response.json();
         
         if (response.ok) {
@@ -506,7 +508,7 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
       setCheckoutLoading(true);
       
       // Create checkout session
-      const response = await fetch('/api/create-checkout-session', {
+      const response = await fetch(`${BACKEND_URL}/api/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -563,7 +565,7 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
     try {
       setCancelLoading(true);
       
-      const response = await fetch('/api/cancel-subscription', {
+      const response = await fetch(`${BACKEND_URL}/api/cancel-subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

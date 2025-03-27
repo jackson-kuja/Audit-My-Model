@@ -2,16 +2,38 @@ import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '../utils/supabase';
 
 // Initialize Stripe with your publishable key
-// Environment variables in the frontend should be prefixed with REACT_APP_
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || '');
+// Try different environment variable formats (React uses REACT_APP_ prefix)
+const stripePublishableKey = 
+  process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
+  'pk_live_51Q5AMXAIZA5z1cEB7EB44emtUZZgMton2y5OzZuNkzrsAEa0SRpAZrhW62sepZQ58wnPGTL8BTVXxEqHZBjj1Hde00KngNmqwN'; // Fallback to the known key
+
+// Log the key (first 8 chars only for security) for debugging
+console.log('Stripe publishable key:', stripePublishableKey ? `${stripePublishableKey.substring(0, 8)}...` : 'not set');
+
+const stripePromise = loadStripe(stripePublishableKey);
 
 // Product and price IDs from Stripe via environment variables
-const PRODUCT_ID = process.env.REACT_APP_STRIPE_PRODUCT_ID || '';
-const PRICE_ID = process.env.REACT_APP_STRIPE_PRICE_ID || '';
-const COUPON_ID = process.env.REACT_APP_STRIPE_COUPON_ID || '';
+const PRODUCT_ID = 
+  process.env.REACT_APP_STRIPE_PRODUCT_ID || 
+  process.env.NEXT_PUBLIC_STRIPE_PRODUCT_ID || 
+  'prod_S18FTeYLEImBN0';
+
+const PRICE_ID = 
+  process.env.REACT_APP_STRIPE_PRICE_ID || 
+  process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || 
+  'price_1R75zAAIZA5z1cEBvzTjyxqA';
+
+const COUPON_ID = 
+  process.env.REACT_APP_STRIPE_COUPON_ID || 
+  process.env.NEXT_PUBLIC_STRIPE_COUPON_ID || 
+  'BhoSIPes';
 
 // Backend API URL
-const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://audit-my-file.onrender.com';
+const BACKEND_URL = 
+  process.env.REACT_APP_API_URL || 
+  process.env.NEXT_PUBLIC_API_URL || 
+  'https://audit-my-file.onrender.com';
 
 const stripeService = {
   // Create a checkout session for subscription

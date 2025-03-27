@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -10,6 +10,8 @@ import { cn } from "../lib/utils";
 import auditService from '../services/auditService';
 import { toast } from "../hooks/use-toast";
 import { usePageTitle } from '../hooks/usePageTitle';
+import { loadStripe } from '@stripe/stripe-js';
+import { CheckCircle } from 'lucide-react';
 
 // UI Components
 import {
@@ -459,56 +461,157 @@ const PasswordSection: React.FC<{ user: User }> = ({ user }) => {
 
 // Subscription Section
 const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
-  // Default values for subscription form
-  const defaultValues: SubscriptionFormValues = {
-    userTier: user?.user_tier || user?.user_metadata?.user_tier || 'free',
-  };
+  const [loading, setLoading] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const form = useForm<SubscriptionFormValues>({
-    resolver: zodResolver(subscriptionFormSchema),
-    defaultValues,
-    mode: "onChange",
-  });
-
-  const onSubmit = async (data: SubscriptionFormValues) => {
-    try {
-      // Update user in the database
-      const { error } = await supabase
-        .from('users')
-        .update({
-          user_tier: data.userTier,
-          is_paid: data.userTier === 'paid'
-        })
-        .eq('id', user.id);
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Update user metadata
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: { 
-          ...(user.user_metadata as Record<string, any>),
-          user_tier: data.userTier 
+  // Fetch subscription status on component mount
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/subscription-status?userId=${user.id}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          setSubscriptionData(data);
+        } else {
+          console.error('Error fetching subscription status:', data.error);
+          toast({
+            title: "Error",
+            description: data.error || 'Failed to fetch subscription status',
+            variant: "destructive"
+          });
         }
-      });
-      
-      if (metadataError) {
-        throw metadataError;
+      } catch (error) {
+        console.error('Error fetching subscription status:', error);
+        toast({
+          title: "Error",
+          description: 'Failed to fetch subscription status',
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
+    };
+
+    fetchSubscriptionStatus();
+  }, [user.id]);
+
+  // Handle checkout
+  const handleCheckout = async () => {
+    try {
+      setCheckoutLoading(true);
       
-      toast({
-        title: "Subscription updated",
-        description: `You are now a ${data.userTier} user.`
+      // Create checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          email: user.email,
+          priceId: process.env.REACT_APP_STRIPE_PRICE_ID, // From environment variable
+          couponId: process.env.REACT_APP_STRIPE_COUPON_ID, // From environment variable
+        }),
       });
-    } catch (err) {
-      console.error('Error updating subscription:', err);
+      
+      const data = await response.json();
+      
+      if (response.ok && data.sessionId) {
+        // Load Stripe.js
+        const stripe = await loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || '');
+        
+        if (!stripe) {
+          throw new Error('Failed to load Stripe');
+        }
+        
+        // Redirect to checkout
+        const { error } = await stripe.redirectToCheckout({
+          sessionId: data.sessionId,
+        });
+        
+        if (error) {
+          throw error;
+        }
+      } else {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+    } catch (error) {
+      console.error('Error redirecting to checkout:', error);
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : 'Failed to update subscription',
+        title: "Checkout Error",
+        description: error instanceof Error ? error.message : 'Failed to redirect to checkout',
         variant: "destructive"
       });
+    } finally {
+      setCheckoutLoading(false);
     }
+  };
+
+  // Handle cancel subscription
+  const handleCancelSubscription = async () => {
+    if (!subscriptionData?.subscription?.id) return;
+    
+    if (!window.confirm('Are you sure you want to cancel your subscription? You will continue to have access until the end of your billing period.')) {
+      return;
+    }
+    
+    try {
+      setCancelLoading(true);
+      
+      const response = await fetch('/api/cancel-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscriptionId: subscriptionData.subscription.id,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Subscription Canceled",
+          description: "Your subscription has been canceled and will end at the end of your billing period.",
+        });
+        
+        // Update subscription data
+        setSubscriptionData({
+          ...subscriptionData,
+          subscription: {
+            ...subscriptionData.subscription,
+            cancel_at_period_end: true,
+          },
+        });
+      } else {
+        throw new Error(data.error || 'Failed to cancel subscription');
+      }
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to cancel subscription',
+        variant: "destructive"
+      });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   };
 
   return (
@@ -516,72 +619,104 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
       <div className="mt-0">
         <h3 className="text-lg font-medium">Subscription Settings</h3>
         <p className="text-sm text-muted-foreground">
-          Select your user tier to manage API usage.
+          Manage your subscription plan and payment details.
         </p>
       </div>
       <Separator />
       
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="userTier"
-            render={({ field }) => (
-              <FormItem className="space-y-3">
-                <FormLabel>User Tier</FormLabel>
-                <FormControl>
-                  <div className="flex flex-col space-y-4">
-                    <div className="border rounded-md p-4 hover:border-primary cursor-pointer">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id="free"
-                          name="userTier"
-                          value="free"
-                          checked={field.value === 'free'}
-                          onChange={() => field.onChange('free')}
-                          className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                        />
-                        <label htmlFor="free" className="font-medium text-sm flex flex-col">
-                          <span>Free User</span>
-                          <span className="text-xs text-muted-foreground">
-                            Requests are batched for processing. Uses OpenAI's o3-mini High model.
-                          </span>
-                        </label>
-                      </div>
-                    </div>
-                    <div className="border rounded-md p-4 hover:border-primary cursor-pointer">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id="paid"
-                          name="userTier"
-                          value="paid"
-                          checked={field.value === 'paid'}
-                          onChange={() => field.onChange('paid')}
-                          className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                        />
-                        <label htmlFor="paid" className="font-medium text-sm flex flex-col">
-                          <span>Paid User</span>
-                          <span className="text-xs text-muted-foreground">
-                            Requests processed in real-time. Uses OpenAI's latest models.
-                          </span>
-                        </label>
-                      </div>
-                    </div>
+      {loading ? (
+        <div className="py-8 flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <>
+          {/* Subscription Details */}
+          {subscriptionData?.subscribed ? (
+            <div className="space-y-4">
+              <div className="bg-primary/5 rounded-lg p-4 border">
+                <h4 className="font-medium">Current Plan: Premium</h4>
+                <div className="mt-2 space-y-1">
+                  <p className="text-sm flex justify-between">
+                    <span>Status:</span> 
+                    <span className="font-medium">
+                      {subscriptionData.subscription.cancel_at_period_end 
+                        ? 'Active (Canceling)' 
+                        : 'Active'}
+                    </span>
+                  </p>
+                  <p className="text-sm flex justify-between">
+                    <span>Billing period ends:</span>
+                    <span className="font-medium">
+                      {formatDate(subscriptionData.subscription.current_period_end)}
+                    </span>
+                  </p>
+                  {subscriptionData.subscription.cancel_at_period_end && (
+                    <p className="text-sm text-amber-600 mt-2">
+                      Your subscription will end on {formatDate(subscriptionData.subscription.current_period_end)}
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              {!subscriptionData.subscription.cancel_at_period_end && (
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={handleCancelSubscription}
+                  disabled={cancelLoading}
+                >
+                  {cancelLoading ? "Processing..." : "Cancel Subscription"}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="rounded-md p-6 border">
+                <h4 className="font-medium text-lg">Upgrade to Premium</h4>
+                <p className="text-muted-foreground mt-1 mb-4">
+                  Get priority processing for your audit requests and access to premium features.
+                </p>
+                
+                <div className="space-y-2 mb-6">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-primary mr-2" />
+                    <span>Real-time audit processing</span>
                   </div>
-                </FormControl>
-                <FormDescription>
-                  Free users will have their requests processed in batches, while paid users have real-time processing.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <Button type="submit">Update Subscription</Button>
-        </form>
-      </Form>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-primary mr-2" />
+                    <span>Priority customer support</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-primary mr-2" />
+                    <span>Access to all premium features</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-baseline justify-between mb-4">
+                  <div>
+                    <span className="text-3xl font-bold">$28.50</span>
+                    <span className="text-muted-foreground ml-1">/month</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="line-through text-muted-foreground">$95.00</span>
+                    <span className="ml-1 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                      70% off
+                    </span>
+                  </div>
+                </div>
+                
+                <Button 
+                  className="w-full" 
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
+                >
+                  {checkoutLoading ? "Processing..." : "Upgrade Now"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

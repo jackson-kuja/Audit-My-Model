@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { toast } from '../components/ui/use-toast';
+import { toast } from '../hooks/use-toast';
 
 const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://audit-my-file.onrender.com';
 
 export const useStripeCheckout = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
 
   const initiateCheckout = async (userId: string, email: string) => {
     try {

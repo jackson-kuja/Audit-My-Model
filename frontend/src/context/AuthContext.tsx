@@ -217,6 +217,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // We do NOT manually setUser here since onAuthStateChange will handle it
       console.log("[AuthContext] login success => waiting for onAuthStateChange...");
+      
+      // Force redirect to dashboard after successful login
+      // This helps when the onAuthStateChange event doesn't trigger the redirect properly
+      if (authData?.session?.user) {
+        console.log("[AuthContext] Forcing redirect to dashboard after successful login");
+        // Use window.location for a hard redirect to ensure page reloads with fresh state
+        window.location.href = "/dashboard";
+      }
     } catch (err: any) {
       console.error("[AuthContext] login exception:", err);
       setError(err?.message || "Failed to log in");
@@ -245,6 +253,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       console.log("[AuthContext] register success => waiting for onAuthStateChange...");
+      
+      // Force redirect to dashboard after successful registration
+      // This helps when the onAuthStateChange event doesn't trigger the redirect properly
+      if (authData?.user) {
+        console.log("[AuthContext] Forcing redirect to dashboard after successful registration");
+        // Use window.location for a hard redirect to ensure page reloads with fresh state
+        window.location.href = "/dashboard";
+      }
     } catch (err: any) {
       console.error("[AuthContext] register exception:", err);
       setError(err?.message || "Failed to register");

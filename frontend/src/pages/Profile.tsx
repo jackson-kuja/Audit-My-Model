@@ -114,10 +114,6 @@ const settingsNavItems = [
   {
     title: "Subscription",
     id: "subscription"
-  },
-  {
-    title: "Danger Zone",
-    id: "danger"
   }
 ];
 
@@ -191,6 +187,16 @@ const Profile: React.FC = () => {
               onClick={handleLogout}
             >
               Logout
+            </Button>
+            
+            <Separator className="my-2" />
+            
+            <Button
+              variant="outline"
+              className="justify-start text-red-500 hover:text-red-700 hover:bg-red-50"
+              onClick={() => setActiveTab("danger")}
+            >
+              Danger Zone
             </Button>
           </Box>
         </Grid>

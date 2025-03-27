@@ -59,6 +59,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (profileError) {
         console.warn("[AuthContext] Profile fetch error:", profileError.message);
+        
+        // Check if error is due to missing profile (no rows)
+        if (profileError.message.includes("JSON object requested, multiple (or no) rows returned")) {
+          console.log("[AuthContext] Profile not found, creating new profile for user:", sessionUser.id);
+          
+          // Create a new profile record
+          const { data: newProfile, error: insertError } = await supabase
+            .from("profiles")
+            .insert({ 
+              id: sessionUser.id, 
+              email: sessionUser.email 
+            })
+            .select("*")
+            .single();
+            
+          if (insertError) {
+            console.error("[AuthContext] Error creating profile:", insertError);
+            return baseUser;
+          }
+          
+          console.log("[AuthContext] Profile created successfully:", newProfile);
+          
+          // Return the newly created profile with base user data
+          if (newProfile) {
+            return {
+              ...baseUser,
+              first_name: newProfile.first_name,
+              last_name: newProfile.last_name,
+              preferred_email: newProfile.preferred_email,
+              is_paid: newProfile.is_paid,
+              subscription_end_date: newProfile.subscription_end_date,
+            };
+          }
+        }
+        
         return baseUser;
       }
       

@@ -886,7 +886,7 @@ const Upload: React.FC = () => {
                           <li>Preserves all formulas, references, and formatting</li>
                         </ul>
                         
-                        <Button variant="secondary" onClick={() => window.open('#', '_blank')} className="mt-4 flex items-center gap-2">
+                        <Button variant="secondary" onClick={() => window.open('https://www.auditmymodel.com/obfuscation', '_blank')} className="mt-4 flex items-center gap-2">
                           <ExternalLink className="h-4 w-4" />
                           Download Excel Obfuscation Macro
                         </Button>
@@ -913,7 +913,7 @@ const Upload: React.FC = () => {
                           <li>Preserves all visual elements, layout, and formatting</li>
                         </ul>
                         
-                        <Button variant="secondary" onClick={() => window.open('#', '_blank')} className="mt-4 flex items-center gap-2">
+                        <Button variant="secondary" onClick={() => window.open('https://www.auditmymodel.com/obfuscation', '_blank')} className="mt-4 flex items-center gap-2">
                           <ExternalLink className="h-4 w-4" />
                           Download PowerPoint Obfuscation Macro
                         </Button>
@@ -940,7 +940,7 @@ const Upload: React.FC = () => {
                           <li>Preserves document structure, formatting, and readability</li>
                         </ul>
                         
-                        <Button variant="secondary" onClick={() => window.open('#', '_blank')} className="mt-4 flex items-center gap-2">
+                        <Button variant="secondary" onClick={() => window.open('https://www.auditmymodel.com/obfuscation', '_blank')} className="mt-4 flex items-center gap-2">
                           <ExternalLink className="h-4 w-4" />
                           Download Word Obfuscation Macro
                         </Button>

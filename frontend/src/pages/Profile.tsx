@@ -12,6 +12,7 @@ import { toast } from "../hooks/use-toast";
 import { usePageTitle } from '../hooks/usePageTitle';
 import { loadStripe } from '@stripe/stripe-js';
 import { CheckCircle } from 'lucide-react';
+import { Badge } from "../components/ui/badge";
 
 // UI Components
 import {
@@ -674,24 +675,24 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
           ) : (
             <div className="space-y-6">
               <div className="rounded-md p-6 border">
-                <h4 className="font-medium text-lg">Upgrade to Premium</h4>
+                <h4 className="font-medium text-lg">Get Pro</h4>
                 <p className="text-muted-foreground mt-1 mb-4">
-                  Get priority processing for your audit requests and access to premium features.
+                  Unlock unlimited audits and premium features.
                 </p>
                 
-                <div className="space-y-2 mb-6">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-primary mr-2" />
-                    <span>Real-time audit processing</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-primary mr-2" />
-                    <span>Priority customer support</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-primary mr-2" />
-                    <span>Access to all premium features</span>
-                  </div>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20 transition-colors">
+                    <CheckCircle className="h-3.5 w-3.5 text-primary mr-1" />
+                    <span className="text-xs">Unlimited audits</span>
+                  </Badge>
+                  <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20 transition-colors">
+                    <CheckCircle className="h-3.5 w-3.5 text-primary mr-1" />
+                    <span className="text-xs">Real-time processing</span>
+                  </Badge>
+                  <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20 transition-colors">
+                    <CheckCircle className="h-3.5 w-3.5 text-primary mr-1" />
+                    <span className="text-xs">Priority support</span>
+                  </Badge>
                 </div>
                 
                 <div className="flex items-baseline justify-between mb-4">
@@ -712,7 +713,7 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
                   onClick={handleCheckout}
                   disabled={checkoutLoading}
                 >
-                  {checkoutLoading ? "Processing..." : "Upgrade Now"}
+                  {checkoutLoading ? "Processing..." : "Get Pro Now"}
                 </Button>
               </div>
             </div>

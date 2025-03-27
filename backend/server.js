@@ -148,19 +148,27 @@ app.get('/api/subscription-status', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId parameter' });
     }
 
-    // Get user's Stripe customer ID
-    const { data: userData, error: userError } = await supabase
+    // Use supabaseAdmin instead of supabase to bypass RLS
+    const { data: userData, error: userError } = await supabaseAdmin
       .from('profiles')
       .select('stripe_customer_id')
-      .eq('id', userId)
-      .single();
+      .eq('id', userId);
 
     if (userError) {
       console.error('Error fetching user data:', userError);
       return res.status(500).json({ error: 'Error fetching user data' });
     }
 
-    const customerId = userData?.stripe_customer_id;
+    // If no profile exists, treat as unsubscribed
+    if (!userData || userData.length === 0) {
+      return res.status(200).json({
+        subscribed: false,
+        status: 'inactive',
+        subscription: null
+      });
+    }
+
+    const customerId = userData[0].stripe_customer_id;
 
     if (!customerId) {
       return res.status(200).json({
@@ -232,22 +240,22 @@ app.post('/api/create-checkout-session', async (req, res) => {
       return res.status(400).json({ error: 'No price ID provided or configured' });
     }
 
-    // Check if user already has a Stripe customer ID
-    const { data: userData, error: userError } = await supabase
+    // Check if user already has a Stripe customer ID - use supabaseAdmin
+    const { data: userData, error: userError } = await supabaseAdmin
       .from('profiles')
       .select('stripe_customer_id')
-      .eq('id', userId)
-      .single();
+      .eq('id', userId);
 
-    if (userError && userError.code !== 'PGRST116') {
+    if (userError) {
       console.error('Error fetching user data:', userError);
       return res.status(500).json({ error: 'Error fetching user data' });
     }
 
     let customerId;
+    const userProfile = userData && userData.length > 0 ? userData[0] : null;
 
     // If user doesn't have a Stripe customer ID, create one
-    if (!userData?.stripe_customer_id) {
+    if (!userProfile?.stripe_customer_id) {
       const customer = await stripe.customers.create({
         email,
         metadata: {
@@ -258,7 +266,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       customerId = customer.id;
 
       // Save the customer ID to the user profile
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('profiles')
         .update({ stripe_customer_id: customerId })
         .eq('id', userId);
@@ -268,7 +276,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
         return res.status(500).json({ error: 'Error updating user profile' });
       }
     } else {
-      customerId = userData.stripe_customer_id;
+      customerId = userProfile.stripe_customer_id;
     }
 
     // Create checkout session
@@ -362,7 +370,7 @@ app.post('/api/webhook', async (req, res) => {
           
           if (userId) {
             // Update user tier in the database
-            const { error: userUpdateError } = await supabase
+            const { error: userUpdateError } = await supabaseAdmin
               .from('profiles')
               .update({
                 user_tier: 'paid',
@@ -410,7 +418,7 @@ app.post('/api/webhook', async (req, res) => {
           const isPaid = ['active', 'trialing'].includes(subscription.status);
           
           // Update user tier in the database
-          const { error: userUpdateError } = await supabase
+          const { error: userUpdateError } = await supabaseAdmin
             .from('profiles')
             .update({
               user_tier: userTier,

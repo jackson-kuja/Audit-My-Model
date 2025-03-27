@@ -695,34 +695,25 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
                   </Badge>
                 </div>
                 
-                <Button 
-                  className="w-full" 
-                  onClick={handleCheckout}
-                  disabled={checkoutLoading}
-                >
-                  {checkoutLoading ? "Processing..." : "Get Pro Now"}
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    className="w-full" 
+                    onClick={handleCheckout}
+                    disabled={checkoutLoading}
+                  >
+                    {checkoutLoading ? "Processing..." : "Get Pro Now"}
+                  </Button>
+                  
+                  <a 
+                    href={`mailto:hello@athenlabs.com?subject=${encodeURIComponent('Support Request for Audit My File')}&body=${encodeURIComponent('Hello,\n\nI need assistance with Audit My File.\n\nDetails:\n\n')}`}
+                    className="text-sm text-center text-muted-foreground hover:text-primary transition-colors block mt-2"
+                  >
+                    Need help? Contact support
+                  </a>
+                </div>
               </div>
             </div>
           )}
-          
-          {/* Support Button */}
-          <div className="mt-6">
-            <Button 
-              variant="outline" 
-              className="w-full flex items-center justify-center gap-2"
-              asChild
-            >
-              <a 
-                href={`mailto:hello@athenlabs.com?subject=${encodeURIComponent('Support Request for Audit My File')}&body=${encodeURIComponent('Hello,\n\nI need assistance with Audit My File.\n\nDetails:\n\n')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <HelpCircle className="h-4 w-4" />
-                <span>Contact Support</span>
-              </a>
-            </Button>
-          </div>
         </>
       )}
     </div>

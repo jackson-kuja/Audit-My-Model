@@ -604,7 +604,7 @@ const DangerZoneSection: React.FC<{ user: User }> = ({ user }) => {
         .eq('id', user.id);
       
       if (dbError) {
-        throw dbError;
+        throw new Error(`Database error: ${dbError.message || 'Could not delete user data'}`);
       }
       
       // Delete user from auth
@@ -613,7 +613,7 @@ const DangerZoneSection: React.FC<{ user: User }> = ({ user }) => {
       );
       
       if (authError) {
-        throw authError;
+        throw new Error(`Authentication error: ${authError.message || 'Could not delete authentication account'}`);
       }
       
       toast({
@@ -628,8 +628,8 @@ const DangerZoneSection: React.FC<{ user: User }> = ({ user }) => {
     } catch (err) {
       console.error('Error deleting account:', err);
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : 'Failed to delete account',
+        title: "Account deletion failed",
+        description: err instanceof Error ? err.message : 'Failed to delete account. Please contact support.',
         variant: "destructive"
       });
     }
@@ -654,8 +654,10 @@ const DangerZoneSection: React.FC<{ user: User }> = ({ user }) => {
     } catch (err) {
       console.error('Error deleting audit history:', err);
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : 'Failed to delete audit history',
+        title: "Audit deletion failed",
+        description: err instanceof Error 
+          ? `Failed to delete audits: ${err.message}` 
+          : 'Failed to delete audit history. Please try again or contact support.',
         variant: "destructive"
       });
       
@@ -692,8 +694,6 @@ const DangerZoneSection: React.FC<{ user: User }> = ({ user }) => {
           </Button>
         </div>
       </div>
-      
-      <Separator />
       
       {/* Delete Account Section */}
       <div className="rounded-lg border border-destructive p-4 bg-destructive/5">

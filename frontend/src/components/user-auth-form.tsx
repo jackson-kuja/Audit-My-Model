@@ -50,7 +50,7 @@ export function UserAuthForm({ isRegister = false }: UserAuthFormProps) {
       if (isRegister) {
         // Register new user
         console.log("UserAuthForm - Attempting login/register:", email, "(register)")
-        await register(email, password)
+        await register(email, password, firstName, lastName)
       } else {
         // Login existing user
         console.log("UserAuthForm - Attempting login/register:", email, "(login)")

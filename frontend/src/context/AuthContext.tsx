@@ -11,7 +11,7 @@ import type { User } from "../types";
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
   error: string | null;
@@ -235,7 +235,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Register function
-  const register = async (email: string, password: string) => {
+  const register = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
       setError(null);
       setLoading(true);
@@ -244,6 +244,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            first_name: firstName || '',
+            last_name: lastName || '',
+          },
+        },
       });
 
       if (authError) {

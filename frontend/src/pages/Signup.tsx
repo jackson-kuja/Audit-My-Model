@@ -41,8 +41,15 @@ const Signup: React.FC = () => {
         >
           Sign In
         </RouterLink>
-        <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
-          <div className="absolute inset-0 bg-black" />
+        <div 
+          className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex"
+          style={{ 
+            backgroundImage: `url('/signup-background.png')`, 
+            backgroundSize: 'cover', 
+            backgroundPosition: 'center'
+          }}
+        >
+          <div className="absolute inset-0 bg-black opacity-40" />
           <div className="relative z-20 flex items-center text-lg font-medium">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -59,13 +66,11 @@ const Signup: React.FC = () => {
             Audit My File
           </div>
           <div className="relative z-20 mt-auto">
-            <blockquote className="space-y-2">
+            <blockquote className="space-y-2 text-white drop-shadow-md">
               <p className="text-lg">
-                &ldquo;This platform helps me ensure my AI models are robust, 
-                ethical, and ready for real-world deployment. It's become an essential 
-                part of my development workflow.&rdquo;
+                &ldquo;Audit My File saves me time by catching errors in my Excel, PowerPoint, and Word docs. It's a must-have for my work.&rdquo;
               </p>
-              <footer className="text-sm">AI Developer</footer>
+              <footer className="text-sm">Analyst</footer>
             </blockquote>
           </div>
         </div>

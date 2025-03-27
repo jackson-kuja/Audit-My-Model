@@ -121,6 +121,9 @@ const settingsNavItems = [
   }
 ];
 
+// Support mailto link
+const supportMailto = `mailto:hello@athenlabs.com?subject=${encodeURIComponent('Support Request for Audit My File')}&body=${encodeURIComponent('Hello,\n\nI need assistance with Audit My File.\n\nDetails:\n\n')}`;
+
 const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://audit-my-file.onrender.com';
 
 const Profile: React.FC = () => {
@@ -175,6 +178,18 @@ const Profile: React.FC = () => {
               onClick={handleLogout}
             >
               Logout
+            </Button>
+            
+            <Separator className="my-2" />
+            
+            <Button
+              variant="outline"
+              className="justify-start"
+              asChild
+            >
+              <a href={supportMailto} target="_blank" rel="noopener noreferrer">
+                Support
+              </a>
             </Button>
           </Box>
         </Grid>
@@ -703,13 +718,6 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
                   >
                     {checkoutLoading ? "Processing..." : "Get Pro Now"}
                   </Button>
-                  
-                  <a 
-                    href={`mailto:hello@athenlabs.com?subject=${encodeURIComponent('Support Request for Audit My File')}&body=${encodeURIComponent('Hello,\n\nI need assistance with Audit My File.\n\nDetails:\n\n')}`}
-                    className="text-sm text-center text-muted-foreground hover:text-primary transition-colors block mt-2"
-                  >
-                    Need help? Contact support
-                  </a>
                 </div>
               </div>
             </div>

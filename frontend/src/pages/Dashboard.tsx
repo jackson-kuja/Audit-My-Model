@@ -100,117 +100,24 @@ const Dashboard: React.FC = () => {
   // Get user's payment tier
   const isUserPaid = user?.user_tier === 'paid' || user?.is_paid === true;
 
-  // Component mount effect - run once to ensure we have user data
-  useEffect(() => {
-    const fetchUserFromLocalStorage = () => {
-      console.log('[Dashboard] Attempting direct localStorage token extraction');
-      try {
-        // Directly get the token from localStorage
-        const tokenKey = Object.keys(localStorage).find(key => 
-          key.startsWith('sb-') && key.includes('auth-token')
-        );
-        
-        if (tokenKey) {
-          const tokenData = JSON.parse(localStorage.getItem(tokenKey) || '{}');
-          if (tokenData?.currentSession?.user?.id) {
-            const userId = tokenData.currentSession.user.id;
-            console.log('[Dashboard] Successfully extracted user ID from localStorage:', userId);
-            
-            // Immediately fetch audits with this ID
-            fetchAuditsForUser(userId);
-            return true;
-          }
-        }
-      } catch (error) {
-        console.error('[Dashboard] Error extracting user ID from localStorage:', error);
-      }
-      return false;
-    };
-    
-    // Try to fetch immediately on component mount
-    const success = fetchUserFromLocalStorage();
-    if (!success) {
-      console.log('[Dashboard] Could not extract user ID from localStorage, falling back to other methods');
-    }
-  }, []);
-
-  // Function to fetch audits with a known user ID
-  const fetchAuditsForUser = async (userId: string) => {
-    if (!userId) {
-      console.error('[Dashboard] Cannot fetch audits: No user ID provided');
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      console.log('[Dashboard] Fetching audits for user ID:', userId);
-      
-      const { data: auditData, error } = await supabase
-        .from('audits')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('[Dashboard] Error fetching audits for user:', error);
-        setIsLoading(false);
-        setTasks([]);
-        setRecentAudits([]);
-        return;
-      }
-      
-      console.log(`[Dashboard] Retrieved ${auditData?.length || 0} audits for user ${userId}`);
-      
-      if (!auditData || auditData.length === 0) {
-        console.log('[Dashboard] No audits found for user');
-        setIsLoading(false);
-        setTasks([]);
-        setRecentAudits([]);
-        return;
-      }
-      
-      // Process audit data
-      const audits = auditData.map(item => ({
-        id: item.id,
-        user_id: item.user_id,
-        name: item.name || item.model_name || '',
-        model_name: item.model_name,
-        model_type: item.model_type,
-        description: item.description,
-        file_path: item.file_path,
-        audit_type: item.audit_type,
-        results: item.results,
-        original_filename: item.original_filename,
-        status: (item.status as AuditStatus) || 'pending',
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        completed_at: item.completed_at,
-        risk_score: (item.score || item.risk_score || 0) as number,
-        score: (item.score || 0) as number,
-        summary: item.summary,
-        audit_result: item.audit_result,
-        error_message: item.error_message
-      }));
-      
-      // Use current isUserPaid value for status display
-      const formattedTasks = convertAuditsToTasks(audits, isUserPaid);
-      setTasks(formattedTasks);
-      setRecentAudits(formattedTasks.slice(0, 3));
-      setIsLoading(false);
-    } catch (err) {
-      console.error('[Dashboard] Error in fetchAuditsForUser:', err);
-      setIsLoading(false);
-      setTasks([]);
-      setRecentAudits([]);
-    }
-  };
-
   useEffect(() => {
     const fetchAudits = async () => {
       try {
         setIsLoading(true);
         // Get user session directly from Supabase if user context is not available
         let userId = user?.id;
+        
+        // Check for authentication status in URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const authenticated = urlParams.get('authenticated');
+        const timestamp = urlParams.get('ts');
+        
+        if (authenticated === 'true' && timestamp) {
+          console.log('[Dashboard] URL indicates authentication, timestamp:', timestamp);
+          // Remove auth params from URL without refresh
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
         
         if (!userId) {
           console.log('[Dashboard] No user ID in context, checking Supabase session directly');
@@ -222,7 +129,7 @@ const Dashboard: React.FC = () => {
             console.log('[Dashboard] Found user ID from Supabase session:', userId);
           } else {
             // Fallback - check localStorage directly for auth token
-            console.log('[Dashboard] No session found, checking localStorage for auth token');
+            console.log('[Dashboard] Attempting direct localStorage token extraction');
             for (let i = 0; i < localStorage.length; i++) {
               const key = localStorage.key(i);
               if (key && key.includes('supabase.auth.token')) {
@@ -241,6 +148,7 @@ const Dashboard: React.FC = () => {
                 }
               }
             }
+            console.log('[Dashboard] Could not extract user ID from localStorage, falling back to other methods');
           }
         } else {
           console.log('[Dashboard] Using user ID from context:', userId);
@@ -317,109 +225,12 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    // Always try to fetch audits immediately
+    // Fetch audits when component mounts or dependencies change
     fetchAudits();
     
-    // Set a retry timer if we're still loading after a delay
-    const retryTimer = setTimeout(() => {
-      if (isLoading) {
-        console.log('[Dashboard] Retrying audit fetch after delay');
-        fetchAudits();
-      }
-    }, 3000);
+    // No retry timer needed
     
-    return () => clearTimeout(retryTimer);
   }, [user, isUserPaid]);
-
-  // Add effect to handle URL auth params
-  useEffect(() => {
-    // Check for authentication status in URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const authenticated = urlParams.get('authenticated');
-    const timestamp = urlParams.get('ts');
-    
-    if (authenticated === 'true' && timestamp) {
-      console.log('[Dashboard] URL indicates authentication, timestamp:', timestamp);
-      // Force a direct check with Supabase
-      const checkSessionAndFetchData = async () => {
-        try {
-          setIsLoading(true);
-          console.log('[Dashboard] Checking Supabase session from URL auth params');
-          const { data: sessionData } = await supabase.auth.getSession();
-          let userId = sessionData?.session?.user?.id;
-          
-          if (userId) {
-            console.log('[Dashboard] Found user from URL auth params:', userId);
-            
-            // Directly fetch audits with the user ID
-            console.log('[Dashboard] Directly fetching audits with user ID from URL auth');
-            const { data: auditData, error } = await supabase
-              .from('audits')
-              .select('*')
-              .eq('user_id', userId)
-              .order('created_at', { ascending: false });
-              
-            if (error) {
-              console.error('[Dashboard] Error fetching audits from URL auth:', error);
-              setIsLoading(false);
-              return;
-            }
-            
-            console.log('[Dashboard] Audits retrieved from URL auth:', auditData);
-            
-            if (!auditData || auditData.length === 0) {
-              console.log('[Dashboard] No audits found for user from URL auth');
-              setIsLoading(false);
-              setTasks([]);
-              setRecentAudits([]);
-              return;
-            }
-            
-            // Convert raw database objects to Audit type
-            const audits = auditData.map(item => ({
-              id: item.id,
-              user_id: item.user_id,
-              name: item.name || item.model_name || '',
-              model_name: item.model_name,
-              model_type: item.model_type,
-              description: item.description,
-              file_path: item.file_path,
-              audit_type: item.audit_type,
-              results: item.results,
-              original_filename: item.original_filename,
-              status: (item.status as AuditStatus) || 'pending',
-              created_at: item.created_at,
-              updated_at: item.updated_at,
-              completed_at: item.completed_at,
-              risk_score: (item.score || item.risk_score || 0) as number,
-              score: (item.score || 0) as number,
-              summary: item.summary,
-              audit_result: item.audit_result,
-              error_message: item.error_message
-            }));
-            
-            // Convert audits to the format expected by the DataTable
-            const formattedTasks = convertAuditsToTasks(audits, isUserPaid);
-            setTasks(formattedTasks);
-            setRecentAudits(formattedTasks.slice(0, 3));
-            setIsLoading(false);
-          } else {
-            console.log('[Dashboard] No user ID found from URL auth params');
-            setIsLoading(false);
-          }
-        } catch (error) {
-          console.error('[Dashboard] Error in URL auth flow:', error);
-          setIsLoading(false);
-        }
-      };
-      
-      checkSessionAndFetchData();
-      
-      // Remove auth params from URL without refresh
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, newUrl);
-    }
-  }, [isUserPaid]);
 
   // Handle clicking on an audit card
   const handleAuditClick = (id: string) => {

@@ -197,6 +197,8 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
     preferredEmail: user?.preferred_email || user?.email || '',
   };
 
+  const [buttonState, setButtonState] = useState<'default' | 'success'>('default');
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues,
@@ -219,10 +221,13 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
         throw error;
       }
       
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully."
-      });
+      // Change button state to success
+      setButtonState('success');
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        setButtonState('default');
+      }, 2000);
     } catch (err) {
       console.error('Error updating profile:', err);
       toast({
@@ -299,7 +304,12 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
             )}
           />
           
-          <Button type="submit">Update profile</Button>
+          <Button 
+            type="submit" 
+            className={buttonState === 'success' ? 'bg-green-500 hover:bg-green-600' : ''}
+          >
+            {buttonState === 'success' ? 'Saved!' : 'Update profile'}
+          </Button>
         </form>
       </Form>
     </div>

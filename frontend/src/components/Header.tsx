@@ -221,6 +221,42 @@ const Header = () => {
                 </Box>
                 
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  {/* Get Pro Button (only for non-Pro users who are logged in) */}
+                  {user && !isPro && (
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => navigate('/profile')}
+                      sx={{
+                        borderRadius: 100,
+                        borderColor: 'rgba(99, 102, 241, 0.5)',
+                        px: 1.5,
+                        py: 0.5,
+                        mr: 1.5,
+                        textTransform: 'none',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          backgroundColor: 'rgba(99, 102, 241, 0.04)',
+                        }
+                      }}
+                    >
+                      Get Pro
+                      <Box component="span" sx={{ 
+                        fontSize: '0.65rem', 
+                        ml: 0.5, 
+                        color: 'text.secondary',
+                        maxWidth: 80,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}>
+                        (unlimited audits)
+                      </Box>
+                    </Button>
+                  )}
+
                   {/* User Avatar & Menu */}
                   {user && (
                     <>
@@ -342,29 +378,56 @@ const Header = () => {
 
                   {/* Direct navigation icons for mobile */}
                   {user ? (
-                    shouldShowDashboardIcon ? (
-                      <Tooltip title="Go to Dashboard">
-                        <IconButton
-                          edge="end"
-                          color="inherit"
-                          aria-label="dashboard"
-                          onClick={() => navigate('/dashboard')}
-                        >
-                          <DashboardIcon />
-                        </IconButton>
-                      </Tooltip>
-                    ) : (
-                      <Tooltip title="Go to Profile">
-                        <IconButton
-                          edge="end"
-                          color="inherit"
-                          aria-label="profile"
+                    <>
+                      {/* Get Pro Button (only for non-Pro users in mobile) */}
+                      {!isPro && (
+                        <Button
+                          variant="outlined"
+                          color="primary"
                           onClick={() => navigate('/profile')}
+                          sx={{
+                            borderRadius: 100,
+                            borderColor: 'rgba(99, 102, 241, 0.5)',
+                            px: 1.2,
+                            py: 0.4,
+                            mr: 1,
+                            textTransform: 'none',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              backgroundColor: 'rgba(99, 102, 241, 0.04)',
+                            }
+                          }}
                         >
-                          <AccountCircleIcon />
-                        </IconButton>
-                      </Tooltip>
-                    )
+                          Get Pro
+                        </Button>
+                      )}
+                      
+                      {shouldShowDashboardIcon ? (
+                        <Tooltip title="Go to Dashboard">
+                          <IconButton
+                            edge="end"
+                            color="inherit"
+                            aria-label="dashboard"
+                            onClick={() => navigate('/dashboard')}
+                          >
+                            <DashboardIcon />
+                          </IconButton>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title="Go to Profile">
+                          <IconButton
+                            edge="end"
+                            color="inherit"
+                            aria-label="profile"
+                            onClick={() => navigate('/profile')}
+                          >
+                            <AccountCircleIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </>
                   ) : (
                     <Button
                       variant="contained"

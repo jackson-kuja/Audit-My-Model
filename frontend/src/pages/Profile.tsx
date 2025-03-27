@@ -167,7 +167,6 @@ const Profile: React.FC = () => {
                 {item.title}
               </Button>
             ))}
-            <Separator className="my-2" />
             
             <Button
               variant="outline"
@@ -188,8 +187,6 @@ const Profile: React.FC = () => {
             >
               Logout
             </Button>
-            
-            <Separator className="my-2" />
             
             <Button
               variant="outline"

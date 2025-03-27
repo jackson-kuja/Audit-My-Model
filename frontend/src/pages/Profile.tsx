@@ -165,21 +165,12 @@ const Profile: React.FC = () => {
               <Button
                 key={item.id}
                 variant={activeTab === item.id ? "default" : "outline"}
-                className="justify-start"
+                className={`justify-start ${item.id === "danger" ? "text-red-500 hover:text-red-700 hover:bg-red-50" : ""}`}
                 onClick={() => setActiveTab(item.id)}
               >
                 {item.title}
               </Button>
             ))}
-            <Separator className="my-2" />
-            <Button
-              variant="outline"
-              className="justify-start text-red-500 hover:text-red-700 hover:bg-red-50"
-              onClick={handleLogout}
-            >
-              Logout
-            </Button>
-            
             <Separator className="my-2" />
             
             <Button
@@ -190,6 +181,16 @@ const Profile: React.FC = () => {
               <a href={supportMailto} target="_blank" rel="noopener noreferrer">
                 Support
               </a>
+            </Button>
+            
+            <Separator className="my-2" />
+            
+            <Button
+              variant="outline"
+              className="justify-start text-red-500 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              Logout
             </Button>
           </Box>
         </Grid>

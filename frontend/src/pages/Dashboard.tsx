@@ -8,6 +8,7 @@ import AddIcon from '@mui/icons-material/Add';
 import Lock from '@mui/icons-material/Lock';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { supabase } from '../utils/supabase';
+import { loadStripe } from '@stripe/stripe-js';
 
 // Shadcn UI Components
 import { Button } from '../components/ui/button';
@@ -87,6 +88,9 @@ const getHoursRemaining = (createdAt: string): number => {
   return Math.ceil(hoursRemaining); // Round up for better UX
 };
 
+// Constants
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://audit-my-file.onrender.com';
+
 const Dashboard: React.FC = () => {
   usePageTitle('Dashboard');
   const { user } = useAuth();
@@ -96,6 +100,7 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [recentAudits, setRecentAudits] = useState<Task[]>([]);
   const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // Get user's payment tier
   const isUserPaid = user?.user_tier === 'paid' || user?.is_paid === true;
@@ -445,7 +450,50 @@ const Dashboard: React.FC = () => {
                               className="w-full mt-1"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate('/profile?tab=subscription');
+                                
+                                // Go directly to the same Stripe checkout flow
+                                if (!user?.id || !user?.email) {
+                                  console.error("User information not available");
+                                  return;
+                                }
+                                
+                                (async () => {
+                                  try {
+                                    // Create checkout session
+                                    const response = await fetch(`${BACKEND_URL}/api/create-checkout-session`, {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: JSON.stringify({
+                                        userId: user.id,
+                                        email: user.email,
+                                        priceId: process.env.REACT_APP_STRIPE_PRICE_ID,
+                                        couponId: process.env.REACT_APP_STRIPE_COUPON_ID,
+                                      }),
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (response.ok && data.sessionId) {
+                                      // Load Stripe.js
+                                      const stripe = await loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || '');
+                                      
+                                      if (!stripe) {
+                                        throw new Error('Failed to load Stripe');
+                                      }
+                                      
+                                      // Redirect to checkout
+                                      await stripe.redirectToCheckout({
+                                        sessionId: data.sessionId,
+                                      });
+                                    } else {
+                                      throw new Error(data.error || 'Failed to create checkout session');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error redirecting to checkout:', error);
+                                  }
+                                })();
                               }}
                             >
                               Get Access Now

@@ -19,19 +19,26 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 });
 
 // Enable CORS
-app.use((req, res, next) => {
-  // Allow all origins temporarily
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Stripe-Signature');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-  
-  next();
-});
+app.use(cors({
+  origin: function(origin, callback) {
+    const allowedOrigins = ['https://www.auditmyfile.com', 'http://localhost:3000', 'http://localhost:3001'];
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      // Optional: Allow any origin in development
+      callback(null, true);
+      // For production, you can restrict origins:
+      // callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Stripe-Signature'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
 
 // Special raw body handling for Stripe webhooks
 app.use('/api/webhook', express.raw({type: 'application/json'}));
@@ -525,11 +532,6 @@ app.post('/api/webhook', async (req, res) => {
       error: err instanceof Error ? err.message : 'An error occurred' 
     });
   }
-});
-
-// Simple OPTIONS handler for CORS preflight requests
-app.options('/api/audits', (req, res) => {
-  res.status(200).end();
 });
 
 // Start the server

@@ -1,10 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
+const Stripe = require('stripe');
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5001;
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2025-02-24.acacia',
+});
 
 // Enable CORS
 const allowedOrigins = [
@@ -26,7 +32,7 @@ const corsOptions = {
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Stripe-Signature']
 };
 app.use(cors(corsOptions));
 
@@ -36,7 +42,9 @@ app.use(express.json());
 // Create Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
 // Basic health check endpoint
 app.get('/', (req, res) => {
@@ -77,6 +85,315 @@ app.get('/api/audits/:id', async (req, res) => {
   } catch (error) {
     console.error(`Error fetching audit ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to fetch audit' });
+  }
+});
+
+// Stripe: Subscription Status endpoint
+app.get('/api/subscription-status', async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId parameter' });
+    }
+
+    // Get user's Stripe customer ID
+    const { data: userData, error: userError } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single();
+
+    if (userError) {
+      console.error('Error fetching user data:', userError);
+      return res.status(500).json({ error: 'Error fetching user data' });
+    }
+
+    const customerId = userData?.stripe_customer_id;
+
+    if (!customerId) {
+      return res.status(200).json({
+        subscribed: false,
+        status: 'inactive',
+        subscription: null
+      });
+    }
+
+    // Get customer's subscriptions
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'all',
+      expand: ['data.default_payment_method']
+    });
+
+    // Check if customer has any active subscriptions
+    const activeSubscription = subscriptions.data.find(sub => 
+      ['active', 'trialing'].includes(sub.status)
+    );
+
+    if (!activeSubscription) {
+      return res.status(200).json({
+        subscribed: false,
+        status: 'inactive',
+        subscription: null
+      });
+    }
+
+    // Return subscription details
+    return res.status(200).json({
+      subscribed: true,
+      status: activeSubscription.status,
+      subscription: {
+        id: activeSubscription.id,
+        current_period_end: new Date(activeSubscription.current_period_end * 1000).toISOString(),
+        cancel_at_period_end: activeSubscription.cancel_at_period_end,
+        plan: {
+          id: activeSubscription.items.data[0]?.price.id,
+          amount: activeSubscription.items.data[0]?.price.unit_amount,
+          interval: activeSubscription.items.data[0]?.price.recurring?.interval
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error getting subscription status:', error);
+    return res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'An error occurred' 
+    });
+  }
+});
+
+// Stripe: Create Checkout Session endpoint
+app.post('/api/create-checkout-session', async (req, res) => {
+  try {
+    // Get request body
+    const { userId, email, priceId, couponId } = req.body;
+
+    if (!userId || !email) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    // Use provided price ID or fallback to environment variable
+    const finalPriceId = priceId || process.env.STRIPE_PRICE_ID;
+    // Use provided coupon ID or fallback to environment variable
+    const finalCouponId = couponId || process.env.STRIPE_COUPON_ID;
+
+    if (!finalPriceId) {
+      return res.status(400).json({ error: 'No price ID provided or configured' });
+    }
+
+    // Check if user already has a Stripe customer ID
+    const { data: userData, error: userError } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single();
+
+    if (userError && userError.code !== 'PGRST116') {
+      console.error('Error fetching user data:', userError);
+      return res.status(500).json({ error: 'Error fetching user data' });
+    }
+
+    let customerId;
+
+    // If user doesn't have a Stripe customer ID, create one
+    if (!userData?.stripe_customer_id) {
+      const customer = await stripe.customers.create({
+        email,
+        metadata: {
+          userId,
+        },
+      });
+
+      customerId = customer.id;
+
+      // Save the customer ID to the user profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Error updating user profile:', updateError);
+        return res.status(500).json({ error: 'Error updating user profile' });
+      }
+    } else {
+      customerId = userData.stripe_customer_id;
+    }
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: finalPriceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      discounts: finalCouponId ? [{ coupon: finalCouponId }] : [],
+      success_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.auditmyfile.com'}/profile?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.auditmyfile.com'}/profile?canceled=true`,
+    });
+
+    return res.status(200).json({ sessionId: session.id });
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    return res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'An error occurred' 
+    });
+  }
+});
+
+// Stripe: Cancel Subscription endpoint
+app.post('/api/cancel-subscription', async (req, res) => {
+  try {
+    const { subscriptionId } = req.body;
+
+    if (!subscriptionId) {
+      return res.status(400).json({ error: 'Missing subscription ID' });
+    }
+
+    // Cancel the subscription at the end of the current period
+    const subscription = await stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: true,
+    });
+
+    return res.status(200).json({
+      success: true,
+      subscription: {
+        id: subscription.id,
+        status: subscription.status,
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        cancel_at_period_end: subscription.cancel_at_period_end,
+      }
+    });
+  } catch (error) {
+    console.error('Error canceling subscription:', error);
+    return res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'An error occurred' 
+    });
+  }
+});
+
+// Stripe: Webhook endpoint
+app.post('/api/webhook', async (req, res) => {
+  const payload = req.body;
+  const sig = req.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    // Verify webhook signature
+    event = stripe.webhooks.constructEvent(
+      payload,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET || ''
+    );
+  } catch (err) {
+    console.error('⚠️ Webhook signature verification failed:', err);
+    return res.status(400).json({ error: 'Webhook signature verification failed' });
+  }
+
+  // Handle the event
+  try {
+    switch (event.type) {
+      // Handle successful payment for a subscription
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        
+        // Update user's tier in the database
+        if (session.customer && session.mode === 'subscription') {
+          // Get user ID from the customer's metadata
+          const customer = await stripe.customers.retrieve(session.customer);
+          const userId = customer.metadata.userId;
+          
+          if (userId) {
+            // Update user tier in the database
+            const { error: userUpdateError } = await supabase
+              .from('profiles')
+              .update({
+                user_tier: 'paid',
+                is_paid: true
+              })
+              .eq('id', userId);
+            
+            if (userUpdateError) {
+              console.error('Error updating user tier:', userUpdateError);
+            }
+            
+            // Update user metadata
+            const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(
+              userId,
+              {
+                user_metadata: {
+                  user_tier: 'paid'
+                }
+              }
+            );
+            
+            if (metadataError) {
+              console.error('Error updating user metadata:', metadataError);
+            }
+          }
+        }
+        break;
+      }
+      
+      // Handle subscription status changes
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        
+        // Get customer to find user ID
+        const customer = await stripe.customers.retrieve(customerId);
+        const userId = customer.metadata.userId;
+        
+        if (userId) {
+          // Determine user tier based on subscription status
+          const userTier = 
+            ['active', 'trialing'].includes(subscription.status) ? 'paid' : 'free';
+          const isPaid = ['active', 'trialing'].includes(subscription.status);
+          
+          // Update user tier in the database
+          const { error: userUpdateError } = await supabase
+            .from('profiles')
+            .update({
+              user_tier: userTier,
+              is_paid: isPaid
+            })
+            .eq('id', userId);
+          
+          if (userUpdateError) {
+            console.error('Error updating user tier:', userUpdateError);
+          }
+          
+          // Update user metadata
+          const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(
+            userId,
+            {
+              user_metadata: {
+                user_tier: userTier
+              }
+            }
+          );
+          
+          if (metadataError) {
+            console.error('Error updating user metadata:', metadataError);
+          }
+        }
+        break;
+      }
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error('Error processing webhook:', err);
+    return res.status(500).json({ 
+      error: err instanceof Error ? err.message : 'An error occurred' 
+    });
   }
 });
 

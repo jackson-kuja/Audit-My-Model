@@ -147,6 +147,12 @@ app.get('/api/subscription-status', async (req, res) => {
     if (!userId) {
       return res.status(400).json({ error: 'Missing userId parameter' });
     }
+    
+    // Check if supabaseAdmin is properly initialized
+    if (!supabaseAdmin || !supabaseAdmin.from) {
+      console.error('Supabase admin client not initialized properly');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
 
     // Use supabaseAdmin instead of supabase to bypass RLS
     const { data: userData, error: userError } = await supabaseAdmin
@@ -155,7 +161,7 @@ app.get('/api/subscription-status', async (req, res) => {
       .eq('id', userId);
 
     if (userError) {
-      console.error('Error fetching user data:', userError);
+      console.error('Error fetching user data:', JSON.stringify(userError, null, 2));
       return res.status(500).json({ error: 'Error fetching user data' });
     }
 
@@ -240,6 +246,12 @@ app.post('/api/create-checkout-session', async (req, res) => {
       return res.status(400).json({ error: 'No price ID provided or configured' });
     }
 
+    // Check if supabaseAdmin is properly initialized
+    if (!supabaseAdmin || !supabaseAdmin.from) {
+      console.error('Supabase admin client not initialized properly');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
     // Check if user already has a Stripe customer ID - use supabaseAdmin
     const { data: userData, error: userError } = await supabaseAdmin
       .from('profiles')
@@ -247,7 +259,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       .eq('id', userId);
 
     if (userError) {
-      console.error('Error fetching user data:', userError);
+      console.error('Error fetching user data:', JSON.stringify(userError, null, 2));
       return res.status(500).json({ error: 'Error fetching user data' });
     }
 

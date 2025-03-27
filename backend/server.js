@@ -7,44 +7,95 @@ const Stripe = require('stripe');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Add error handling
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Server error', message: err.message });
+});
+
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-02-24.acacia',
 });
 
 // Enable CORS
-const allowedOrigins = [
-  'https://auditmyfile.com',
-  'https://www.auditmyfile.com',
-  'http://localhost:3000'
-];
+app.use((req, res, next) => {
+  // Allow all origins temporarily
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Stripe-Signature');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  
+  next();
+});
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.CORS_ORIGIN === origin) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(null, true); // Temporarily allow all origins until this is resolved
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Stripe-Signature']
-};
-app.use(cors(corsOptions));
+// Special raw body handling for Stripe webhooks
+app.use('/api/webhook', express.raw({type: 'application/json'}));
 
-// Parse JSON request bodies
+// Parse JSON request bodies for all other routes
 app.use(express.json());
 
 // Create Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
+let supabase, supabaseAdmin;
+
+// Create Supabase clients with proper error handling
+try {
+  if (!supabaseUrl) {
+    console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
+  }
+  
+  if (!supabaseAnonKey) {
+    console.error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable');
+  }
+  
+  // Create standard client
+  supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+  console.log('Supabase client created');
+  
+  // Create admin client if service role key is available
+  if (supabaseKey) {
+    supabaseAdmin = createClient(supabaseUrl || '', supabaseKey);
+    console.log('Supabase admin client created');
+  } else {
+    console.warn('SUPABASE_SERVICE_ROLE_KEY not provided, admin operations will not work');
+    // Create a fallback that logs errors
+    supabaseAdmin = {
+      auth: {
+        admin: {
+          updateUserById: async () => {
+            console.error('Cannot update user: SUPABASE_SERVICE_ROLE_KEY not provided');
+            return { error: new Error('SUPABASE_SERVICE_ROLE_KEY not provided') };
+          }
+        }
+      }
+    };
+  }
+} catch (error) {
+  console.error('Error initializing Supabase clients:', error);
+  // Create fallback clients to prevent crashes
+  supabase = { 
+    from: () => ({
+      select: () => ({ eq: () => ({ single: () => ({ data: null, error: new Error('Supabase client failed to initialize') }) }) })
+    })
+  };
+  supabaseAdmin = {
+    auth: {
+      admin: {
+        updateUserById: async () => {
+          return { error: new Error('Supabase admin client failed to initialize') };
+        }
+      }
+    }
+  };
+}
 
 // Basic health check endpoint
 app.get('/', (req, res) => {
@@ -278,6 +329,7 @@ app.post('/api/cancel-subscription', async (req, res) => {
 
 // Stripe: Webhook endpoint
 app.post('/api/webhook', async (req, res) => {
+  // For webhook, we get the raw body instead of parsed JSON
   const payload = req.body;
   const sig = req.headers['stripe-signature'];
 

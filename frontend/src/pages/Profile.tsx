@@ -11,7 +11,7 @@ import auditService from '../services/auditService';
 import { toast } from "../hooks/use-toast";
 import { usePageTitle } from '../hooks/usePageTitle';
 import { loadStripe } from '@stripe/stripe-js';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, HelpCircle } from 'lucide-react';
 import { Badge } from "../components/ui/badge";
 
 // UI Components
@@ -705,6 +705,24 @@ const SubscriptionSection: React.FC<{ user: User }> = ({ user }) => {
               </div>
             </div>
           )}
+          
+          {/* Support Button */}
+          <div className="mt-6">
+            <Button 
+              variant="outline" 
+              className="w-full flex items-center justify-center gap-2"
+              asChild
+            >
+              <a 
+                href={`mailto:hello@athenlabs.com?subject=${encodeURIComponent('Support Request for Audit My File')}&body=${encodeURIComponent('Hello,\n\nI need assistance with Audit My File.\n\nDetails:\n\n')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <HelpCircle className="h-4 w-4" />
+                <span>Contact Support</span>
+              </a>
+            </Button>
+          </div>
         </>
       )}
     </div>

@@ -197,7 +197,7 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
     preferredEmail: user?.preferred_email || user?.email || '',
   };
 
-  const [buttonState, setButtonState] = useState<'default' | 'success'>('default');
+  const [buttonState, setButtonState] = useState<'default' | 'success' | 'error'>('default');
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -230,11 +230,14 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
       }, 2000);
     } catch (err) {
       console.error('Error updating profile:', err);
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : 'Failed to update profile',
-        variant: "destructive"
-      });
+      
+      // Change button state to error
+      setButtonState('error');
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        setButtonState('default');
+      }, 2000);
     }
   };
 
@@ -306,9 +309,14 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
           
           <Button 
             type="submit" 
-            className={buttonState === 'success' ? 'bg-green-500 hover:bg-green-600' : ''}
+            className={
+              buttonState === 'success' ? 'bg-green-500 hover:bg-green-600' : 
+              buttonState === 'error' ? 'bg-red-500 hover:bg-red-600' : ''
+            }
           >
-            {buttonState === 'success' ? 'Saved!' : 'Update profile'}
+            {buttonState === 'success' ? 'Saved!' : 
+             buttonState === 'error' ? 'Error!' : 
+             'Update profile'}
           </Button>
         </form>
       </Form>
@@ -318,6 +326,8 @@ const ProfileSection: React.FC<{ user: User }> = ({ user }) => {
 
 // Password Change Section
 const PasswordSection: React.FC<{ user: User }> = ({ user }) => {
+  const [buttonState, setButtonState] = useState<'default' | 'success' | 'error'>('default');
+  
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: {
@@ -337,11 +347,10 @@ const PasswordSection: React.FC<{ user: User }> = ({ user }) => {
       
       // If sign-in fails, the current password is incorrect
       if (signInError) {
-        toast({
-          title: "Error",
-          description: "Current password is incorrect",
-          variant: "destructive"
-        });
+        setButtonState('error');
+        setTimeout(() => {
+          setButtonState('default');
+        }, 2000);
         return;
       }
       
@@ -357,17 +366,23 @@ const PasswordSection: React.FC<{ user: User }> = ({ user }) => {
       // Clear password fields
       form.reset();
       
-      toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully."
-      });
+      // Change button state to success
+      setButtonState('success');
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        setButtonState('default');
+      }, 2000);
     } catch (err) {
       console.error('Error updating password:', err);
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : 'Failed to update password',
-        variant: "destructive"
-      });
+      
+      // Change button state to error
+      setButtonState('error');
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        setButtonState('default');
+      }, 2000);
     }
   };
 
@@ -425,7 +440,17 @@ const PasswordSection: React.FC<{ user: User }> = ({ user }) => {
             )}
           />
           
-          <Button type="submit">Update Password</Button>
+          <Button 
+            type="submit"
+            className={
+              buttonState === 'success' ? 'bg-green-500 hover:bg-green-600' : 
+              buttonState === 'error' ? 'bg-red-500 hover:bg-red-600' : ''
+            }
+          >
+            {buttonState === 'success' ? 'Saved!' : 
+             buttonState === 'error' ? 'Error!' : 
+             'Update Password'}
+          </Button>
         </form>
       </Form>
     </div>

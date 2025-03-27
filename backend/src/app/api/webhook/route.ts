@@ -12,6 +12,32 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Helper function to add CORS headers
+function addCorsHeaders(response: NextResponse) {
+  const allowedOrigins = [
+    'https://auditmyfile.com',
+    'https://www.auditmyfile.com',
+    'http://localhost:3000'
+  ];
+  
+  const origin = allowedOrigins.includes(response.headers.get('origin') || '')
+    ? response.headers.get('origin')
+    : 'https://www.auditmyfile.com';
+    
+  response.headers.set('Access-Control-Allow-Origin', origin || '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Stripe-Signature');
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  
+  return response;
+}
+
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS() {
+  const response = new NextResponse(null, { status: 204 });
+  return addCorsHeaders(response);
+}
+
 export async function POST(req: NextRequest) {
   const payload = await req.text();
   const sig = req.headers.get('stripe-signature') || '';
@@ -27,7 +53,9 @@ export async function POST(req: NextRequest) {
     );
   } catch (err) {
     console.error('⚠️ Webhook signature verification failed:', err);
-    return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });
+    return addCorsHeaders(
+      NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 })
+    );
   }
 
   // Handle the event
@@ -123,12 +151,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ received: true });
+    return addCorsHeaders(NextResponse.json({ received: true }));
   } catch (err) {
     console.error('Error processing webhook:', err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'An error occurred' },
-      { status: 500 }
+    return addCorsHeaders(
+      NextResponse.json(
+        { error: err instanceof Error ? err.message : 'An error occurred' },
+        { status: 500 }
+      )
     );
   }
 } 

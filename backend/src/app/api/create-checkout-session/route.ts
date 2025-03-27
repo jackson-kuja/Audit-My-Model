@@ -12,13 +12,41 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Helper function to add CORS headers
+function addCorsHeaders(response: NextResponse) {
+  const allowedOrigins = [
+    'https://auditmyfile.com',
+    'https://www.auditmyfile.com',
+    'http://localhost:3000'
+  ];
+  
+  const origin = allowedOrigins.includes(response.headers.get('origin') || '')
+    ? response.headers.get('origin')
+    : 'https://www.auditmyfile.com';
+    
+  response.headers.set('Access-Control-Allow-Origin', origin || '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  
+  return response;
+}
+
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS() {
+  const response = new NextResponse(null, { status: 204 });
+  return addCorsHeaders(response);
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Get request body
     const { userId, email, priceId, couponId } = await req.json();
 
     if (!userId || !email) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+      return addCorsHeaders(
+        NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
+      );
     }
 
     // Use provided price ID or fallback to environment variable
@@ -27,7 +55,9 @@ export async function POST(req: NextRequest) {
     const finalCouponId = couponId || process.env.STRIPE_COUPON_ID;
 
     if (!finalPriceId) {
-      return NextResponse.json({ error: 'No price ID provided or configured' }, { status: 400 });
+      return addCorsHeaders(
+        NextResponse.json({ error: 'No price ID provided or configured' }, { status: 400 })
+      );
     }
 
     // Check if user already has a Stripe customer ID
@@ -39,7 +69,9 @@ export async function POST(req: NextRequest) {
 
     if (userError && userError.code !== 'PGRST116') {
       console.error('Error fetching user data:', userError);
-      return NextResponse.json({ error: 'Error fetching user data' }, { status: 500 });
+      return addCorsHeaders(
+        NextResponse.json({ error: 'Error fetching user data' }, { status: 500 })
+      );
     }
 
     let customerId: string;
@@ -63,7 +95,9 @@ export async function POST(req: NextRequest) {
 
       if (updateError) {
         console.error('Error updating user profile:', updateError);
-        return NextResponse.json({ error: 'Error updating user profile' }, { status: 500 });
+        return addCorsHeaders(
+          NextResponse.json({ error: 'Error updating user profile' }, { status: 500 })
+        );
       }
     } else {
       customerId = userData.stripe_customer_id;
@@ -85,12 +119,16 @@ export async function POST(req: NextRequest) {
       cancel_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/profile?canceled=true`,
     });
 
-    return NextResponse.json({ sessionId: session.id });
+    return addCorsHeaders(
+      NextResponse.json({ sessionId: session.id })
+    );
   } catch (error) {
     console.error('Error creating checkout session:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'An error occurred' },
-      { status: 500 }
+    return addCorsHeaders(
+      NextResponse.json(
+        { error: error instanceof Error ? error.message : 'An error occurred' },
+        { status: 500 }
+      )
     );
   }
 } 

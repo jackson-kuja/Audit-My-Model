@@ -9,18 +9,40 @@ const protectedPaths = [
   '/api/excel/analyze',
   '/api/upload',
   '/api/subscription',
+  '/api/create-checkout-session',
+  '/api/subscription-status',
+  '/api/cancel-subscription',
+  '/api/webhook',
+];
+
+// Define allowed origins
+const allowedOrigins = [
+  'https://auditmyfile.com',
+  'https://www.auditmyfile.com',
+  'http://localhost:3000'
 ];
 
 // This function can be marked `async` if using `await` inside
 export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   const authHeader = request.headers.get('authorization');
-  const origin = request.headers.get('origin') || 'http://localhost:3000';
+  const requestOrigin = request.headers.get('origin');
+  
+  // Determine if the origin is allowed
+  let origin = 'https://auditmyfile.com'; // Default fallback
+  if (requestOrigin) {
+    if (allowedOrigins.includes(requestOrigin)) {
+      origin = requestOrigin;
+    } else {
+      console.log('[Middleware] Unknown origin:', requestOrigin);
+    }
+  }
   
   // Log the auth header for debugging
   console.log('[Middleware] Request method:', request.method);
   console.log('[Middleware] Request URL:', request.nextUrl.pathname);
   console.log('[Middleware] Auth header present:', !!authHeader);
+  console.log('[Middleware] Origin:', origin);
   
   // Ensure the authorization header is properly passed through
   if (authHeader) {

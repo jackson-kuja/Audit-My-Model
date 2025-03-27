@@ -7,8 +7,24 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Enable CORS
+const allowedOrigins = [
+  'https://auditmyfile.com',
+  'https://www.auditmyfile.com',
+  'http://localhost:3000'
+];
+
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'https://auditmyfile.com',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.CORS_ORIGIN === origin) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Temporarily allow all origins until this is resolved
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };

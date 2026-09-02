@@ -67,10 +67,3 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run clean hosted-browser journey
         run: node scripts/remote_verify.mjs
-      - name: Upload live verification screenshot
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: probeloop-live-verification
-          path: artifacts/probeloop-live.png
-          if-no-files-found: ignore

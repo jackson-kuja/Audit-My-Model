@@ -27,13 +27,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          commit=634dac01620772a5a1ce41e23e2afd3e7c1a6386
+          commit=c24277a3fb1ad40bf0670d0a89c8d69a6b2bffd9
           candidates=(
+            "https://cdn.jsdelivr.net/gh/jackson-kuja/Audit-My-Model@${commit}/index.html"
             "https://rawcdn.githack.com/jackson-kuja/Audit-My-Model/${commit}/index.html"
             "https://raw.githack.com/jackson-kuja/Audit-My-Model/${commit}/index.html"
             "https://cdn.statically.io/gh/jackson-kuja/Audit-My-Model/${commit}/index.html"
             "https://gitcdn.link/cdn/jackson-kuja/Audit-My-Model/${commit}/index.html"
-            "https://cdn.jsdelivr.net/gh/jackson-kuja/Audit-My-Model@probeloop-webmcp-challenge/index.html"
           )
           selected=""
           for url in "${candidates[@]}"; do

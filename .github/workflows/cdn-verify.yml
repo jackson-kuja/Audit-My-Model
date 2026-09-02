@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          commit=c24277a3fb1ad40bf0670d0a89c8d69a6b2bffd9
+          commit=ac809e7f2795bc2ad359781e935423345041a473
           candidates=(
             "https://cdn.jsdelivr.net/gh/jackson-kuja/Audit-My-Model@${commit}/index.html"
             "https://rawcdn.githack.com/jackson-kuja/Audit-My-Model/${commit}/index.html"
@@ -43,7 +43,7 @@ jobs:
               --write-out '%{http_code}' "$url" || true)
             type=$(awk 'BEGIN{IGNORECASE=1} /^content-type:/{gsub("\\r",""); value=$0} END{sub(/^[^:]+:[[:space:]]*/,"",value); print value}' /tmp/candidate.headers)
             printf '%s | %s | %s\n' "$code" "$type" "$url"
-            if [[ "$code" == "200" ]] && [[ "$type" == text/html* ]] && grep -Fq '<title>ProbeLoop — the human-agent repair bench</title>' /tmp/candidate.html; then
+            if [[ "$code" == "200" ]] && [[ "$type" == text/html* ]] && grep -Fq '<title>ProbeLoop — Human-agent repair bench</title>' /tmp/candidate.html; then
               selected="$url"
               break
             fi

@@ -30,10 +30,6 @@ jobs:
           ref: probeloop-webmcp-challenge
       - name: Verify release
         run: npm run verify
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:

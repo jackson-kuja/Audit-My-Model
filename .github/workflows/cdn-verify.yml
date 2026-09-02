@@ -1,0 +1,51 @@
+name: verify-live-cdn
+
+on:
+  push:
+    branches:
+      - probeloop-webmcp-challenge
+    paths:
+      - scripts/remote_verify.mjs
+      - .github/workflows/cdn-verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PROBELOOP_LIVE_URL: https://cdn.jsdelivr.net/gh/jackson-kuja/Audit-My-Model@634dac01620772a5a1ce41e23e2afd3e7c1a6386/index.html
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify checked-in release
+        run: npm run verify
+      - name: Verify immutable CDN responses
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "$PROBELOOP_LIVE_URL" -o /tmp/index.html
+          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "${PROBELOOP_LIVE_URL%/index.html}/styles.css" -o /tmp/styles.css
+          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "${PROBELOOP_LIVE_URL%/index.html}/src/app.js" -o /tmp/app.js
+          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "${PROBELOOP_LIVE_URL%/index.html}/src/webmcp.js" -o /tmp/webmcp.js
+          grep -Fq '<title>ProbeLoop — the human-agent repair bench</title>' /tmp/index.html
+          grep -Fq "documentRef?.modelContext" /tmp/webmcp.js
+          grep -Fq "context.registerTool(tool, { signal: controller.signal })" /tmp/webmcp.js
+      - name: Install isolated browser verifier
+        run: npm install --no-save --package-lock=false playwright@1.55.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run clean hosted-browser journey
+        run: node scripts/remote_verify.mjs
+      - name: Upload live verification screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: probeloop-live-verification
+          path: artifacts/probeloop-live.png
+          if-no-files-found: ignore

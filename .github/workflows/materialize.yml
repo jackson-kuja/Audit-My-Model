@@ -27,7 +27,7 @@ jobs:
           base64 --decode /tmp/probeloop-source.b64 > /tmp/probeloop-source.tar.gz
           echo "2f172cc72a02177ffda8e46b2bee27b1fc843736dbad0a67468a1a6760dfdddf  /tmp/probeloop-source.tar.gz" | sha256sum --check
           tar -xzf /tmp/probeloop-source.tar.gz
-          rm -rf .release
+          rm -rf .release .github/workflows/ci.yml
 
       - name: Validate release
         run: npm run verify

@@ -59,7 +59,7 @@ try {
     { timeout: 30_000 },
   );
 
-  assert.equal(await page.title(), 'ProbeLoop — the human-agent repair bench');
+  assert.equal(await page.title(), 'ProbeLoop — Human-agent repair bench');
   assert.equal(await page.locator('#phase-badge').innerText(), 'DIAGNOSE');
   assert.equal(await page.locator('#webmcp-status').innerText(), '9 site tools available');
   assert.equal(await page.locator('iframe').count(), 0, 'Tool discovery must not depend on an iframe.');

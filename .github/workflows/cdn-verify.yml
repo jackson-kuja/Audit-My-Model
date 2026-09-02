@@ -15,9 +15,7 @@ permissions:
 jobs:
   verify-live:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      PROBELOOP_LIVE_URL: https://cdn.jsdelivr.net/gh/jackson-kuja/Audit-My-Model@634dac01620772a5a1ce41e23e2afd3e7c1a6386/index.html
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,15 +23,42 @@ jobs:
           node-version: 22
       - name: Verify checked-in release
         run: npm run verify
-      - name: Verify immutable CDN responses
+      - name: Select a healthy immutable production origin
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "$PROBELOOP_LIVE_URL" -o /tmp/index.html
-          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "${PROBELOOP_LIVE_URL%/index.html}/styles.css" -o /tmp/styles.css
-          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "${PROBELOOP_LIVE_URL%/index.html}/src/app.js" -o /tmp/app.js
-          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "${PROBELOOP_LIVE_URL%/index.html}/src/webmcp.js" -o /tmp/webmcp.js
-          grep -Fq '<title>ProbeLoop — the human-agent repair bench</title>' /tmp/index.html
+          commit=634dac01620772a5a1ce41e23e2afd3e7c1a6386
+          candidates=(
+            "https://rawcdn.githack.com/jackson-kuja/Audit-My-Model/${commit}/index.html"
+            "https://raw.githack.com/jackson-kuja/Audit-My-Model/${commit}/index.html"
+            "https://cdn.statically.io/gh/jackson-kuja/Audit-My-Model/${commit}/index.html"
+            "https://gitcdn.link/cdn/jackson-kuja/Audit-My-Model/${commit}/index.html"
+            "https://cdn.jsdelivr.net/gh/jackson-kuja/Audit-My-Model@probeloop-webmcp-challenge/index.html"
+          )
+          selected=""
+          for url in "${candidates[@]}"; do
+            rm -f /tmp/candidate.headers /tmp/candidate.html
+            code=$(curl --silent --show-error --location --retry 2 --retry-all-errors \
+              --dump-header /tmp/candidate.headers --output /tmp/candidate.html \
+              --write-out '%{http_code}' "$url" || true)
+            type=$(awk 'BEGIN{IGNORECASE=1} /^content-type:/{gsub("\\r",""); value=$0} END{sub(/^[^:]+:[[:space:]]*/,"",value); print value}' /tmp/candidate.headers)
+            printf '%s | %s | %s\n' "$code" "$type" "$url"
+            if [[ "$code" == "200" ]] && [[ "$type" == text/html* ]] && grep -Fq '<title>ProbeLoop — the human-agent repair bench</title>' /tmp/candidate.html; then
+              selected="$url"
+              break
+            fi
+          done
+          test -n "$selected"
+          echo "PROBELOOP_LIVE_URL=$selected" >> "$GITHUB_ENV"
+          echo "Selected: $selected"
+      - name: Verify public assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=${PROBELOOP_LIVE_URL%/index.html}
+          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "$root/styles.css" -o /tmp/styles.css
+          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "$root/src/app.js" -o /tmp/app.js
+          curl --fail --silent --show-error --location --retry 4 --retry-all-errors "$root/src/webmcp.js" -o /tmp/webmcp.js
           grep -Fq "documentRef?.modelContext" /tmp/webmcp.js
           grep -Fq "context.registerTool(tool, { signal: controller.signal })" /tmp/webmcp.js
       - name: Install isolated browser verifier

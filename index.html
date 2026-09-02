@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111310">
+  <meta name="description" content="ProbeLoop is a WebMCP repair bench where agents reason, people probe, and every repair stays human-authorized.">
+  <meta property="og:title" content="ProbeLoop — the human-agent repair bench">
+  <meta property="og:description" content="Agents reason. People probe. Devices get another life.">
+  <meta property="og:type" content="website">
+  <title>ProbeLoop — Human-agent repair bench</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%23111310%27/%3E%3Cpath d=%27M16 35h10l6-16 7 29 5-13h5%27 fill=%27none%27 stroke=%27%23d6ff65%27 stroke-width=%276%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to repair workspace</a>
+
+  <header class="topbar">
+    <div class="brand" aria-label="ProbeLoop home">
+      <span class="brand-mark" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+      <span class="brand-word">Probe<span>Loop</span></span>
+      <span class="brand-kicker">human-agent repair bench</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="site-tool-pill" id="site-tool-pill" type="button" aria-haspopup="dialog" aria-controls="tools-dialog">
+        <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+        <span id="webmcp-status">Checking site tools…</span>
+      </button>
+      <button class="ghost-button" id="open-console" type="button">Agent rehearsal</button>
+      <button class="icon-button" id="reset-case" type="button" aria-label="Reset synthetic case" title="Reset synthetic case">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M20 20v-6h-6M5.2 15a7.5 7.5 0 0 0 12.3 2.4L20 14M4 10l2.5-3.4A7.5 7.5 0 0 1 18.8 9"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="workspace">
+    <section class="hero-strip" aria-labelledby="case-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span>CASE PL-AM2-0042</span><span class="eyebrow-separator">/</span><span>SYNTHETIC LOW-VOLTAGE FIXTURE</span></p>
+        <h1 id="case-title">A dark speaker. One stressed cable. <em>Five possible causes.</em></h1>
+        <p class="hero-summary">The agent chooses the most informative safe test. The person holds the meter, reports what happened, and keeps authority over the repair.</p>
+      </div>
+      <div class="collaboration-contract" aria-label="Collaboration contract">
+        <div>
+          <span class="contract-label">Agent owns</span>
+          <strong>Inference · ranking · staging</strong>
+        </div>
+        <div class="contract-divider" aria-hidden="true"></div>
+        <div>
+          <span class="contract-label">Person owns</span>
+          <strong>Observation · approval · physical work</strong>
+        </div>
+      </div>
+    </section>
+
+    <nav class="journey" aria-label="Repair journey">
+      <ol id="journey-steps">
+        <li data-step="1"><span>01</span><strong>Diagnose</strong></li>
+        <li data-step="2"><span>02</span><strong>Probe</strong></li>
+        <li data-step="3"><span>03</span><strong>Interpret</strong></li>
+        <li data-step="4"><span>04</span><strong>Review</strong></li>
+        <li data-step="5"><span>05</span><strong>Repair</strong></li>
+        <li data-step="6"><span>06</span><strong>Verify</strong></li>
+        <li data-step="7"><span>07</span><strong>Resolve</strong></li>
+      </ol>
+      <div class="version-chip" id="version-chip">CASE v1</div>
+    </nav>
+
+    <section class="workspace-grid" aria-label="Shared repair workspace">
+      <article class="panel board-panel" aria-labelledby="board-title">
+        <header class="panel-header">
+          <div>
+            <p class="panel-kicker">Shared visual state</p>
+            <h2 id="board-title">AM-2 fault map</h2>
+          </div>
+          <div class="board-legend"><span class="legend-focus"></span> Focus <span class="legend-probe"></span> Probe points</div>
+        </header>
+
+        <div class="board-shell">
+          <svg class="board" id="board" viewBox="0 0 900 520" role="img" aria-labelledby="board-svg-title board-svg-desc">
+            <title id="board-svg-title">Aurora Mini Speaker AM-2 revision C circuit board</title>
+            <desc id="board-svg-desc">A simplified synthetic circuit board with selectable components J1, F1, D3, U2, B1, and U5.</desc>
+            <defs>
+              <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M20 0H0V20" fill="none" stroke="currentColor" stroke-opacity=".07" stroke-width="1"/>
+              </pattern>
+              <filter id="soft-glow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="9" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <rect class="board-base" x="18" y="18" width="864" height="484" rx="36"/>
+            <rect class="board-grid" x="18" y="18" width="864" height="484" rx="36" fill="url(#grid)"/>
+            <path class="trace trace-main" d="M95 235H250M324 235H496Q538 235 538 277V300M596 300H722V373"/>
+            <path class="trace" d="M394 235V146H465"/>
+            <path class="trace" d="M596 280H700V165H735"/>
+            <path class="trace thin" d="M565 354V430H705"/>
+            <path class="trace thin" d="M235 320H420V388H520"/>
+            <circle class="via" cx="394" cy="235" r="8"/><circle class="via" cx="596" cy="280" r="8"/><circle class="via" cx="700" cy="165" r="8"/>
+            <text class="silk board-name" x="68" y="82">AURORA AUDIO</text>
+            <text class="silk board-rev" x="68" y="108">AM-2 / REV C / SYNTHETIC</text>
+            <text class="silk tiny" x="710" y="468">PL-0042</text>
+
+            <g class="component connector" data-component="J1" role="button" tabindex="0" aria-label="Focus J1 USB-C connector">
+              <rect x="55" y="185" width="115" height="100" rx="17"/>
+              <rect class="component-detail" x="72" y="207" width="81" height="56" rx="12"/>
+              <text x="112" y="315">J1</text>
+            </g>
+            <g class="component fuse" data-component="F1" role="button" tabindex="0" aria-label="Focus F1 resettable fuse">
+              <rect x="250" y="202" width="74" height="66" rx="12"/>
+              <path class="component-detail" d="M267 235h40"/>
+              <text x="287" y="296">F1</text>
+            </g>
+            <g class="component diode" data-component="D3" role="button" tabindex="0" aria-label="Focus D3 TVS diode">
+              <rect x="430" y="105" width="88" height="82" rx="13"/>
+              <path class="component-detail" d="m452 146 19-15v30l-19-15h43M490 130v32"/>
+              <text x="474" y="213">D3</text>
+            </g>
+            <g class="component chip" data-component="U2" role="button" tabindex="0" aria-label="Focus U2 charger integrated circuit">
+              <rect x="496" y="247" width="100" height="106" rx="12"/>
+              <path class="chip-pins" d="M512 235v16M532 235v16M552 235v16M572 235v16M512 350v16M532 350v16M552 350v16M572 350v16M484 264h16M484 285h16M484 306h16M484 327h16M592 264h16M592 285h16M592 306h16M592 327h16"/>
+              <circle class="pin-one" cx="516" cy="268" r="5"/>
+              <text x="546" y="304">U2</text>
+              <text x="546" y="389">CHARGE PATH</text>
+            </g>
+            <g class="component battery" data-component="B1" role="button" tabindex="0" aria-label="Focus B1 battery connector">
+              <rect x="690" y="343" width="118" height="80" rx="16"/>
+              <rect class="component-detail" x="712" y="363" width="74" height="40" rx="9"/>
+              <text x="749" y="451">B1</text>
+            </g>
+            <g class="component chip controller" data-component="U5" role="button" tabindex="0" aria-label="Focus U5 main controller">
+              <rect x="698" y="112" width="112" height="106" rx="12"/>
+              <path class="chip-pins" d="M716 100v16M738 100v16M760 100v16M782 100v16M716 215v16M738 215v16M760 215v16M782 215v16M686 130h16M686 152h16M686 174h16M686 196h16M807 130h16M807 152h16M807 174h16M807 196h16"/>
+              <circle class="pin-one" cx="719" cy="134" r="5"/>
+              <text x="754" y="168">U5</text>
+            </g>
+
+            <g class="probe-point" data-probe="F1-left" aria-hidden="true"><circle cx="248" cy="235" r="13"/><text x="225" y="185">A</text></g>
+            <g class="probe-point" data-probe="F1-right" aria-hidden="true"><circle cx="326" cy="235" r="13"/><text x="340" y="185">B</text></g>
+            <g class="probe-point" data-probe="RAIL-5V" aria-hidden="true"><circle cx="394" cy="235" r="13"/><text x="370" y="190">5V</text></g>
+            <g class="probe-point" data-probe="GND" aria-hidden="true"><circle cx="420" cy="390" r="13"/><text x="382" y="436">GND</text></g>
+            <g class="probe-point" data-probe="B1-positive" aria-hidden="true"><circle cx="708" cy="383" r="13"/><text x="680" y="331">+</text></g>
+            <g class="probe-point" data-probe="B1-negative" aria-hidden="true"><circle cx="790" cy="383" r="13"/><text x="804" y="331">−</text></g>
+          </svg>
+          <div class="board-callout" id="board-callout" aria-live="polite"></div>
+        </div>
+
+        <section class="hypotheses" aria-labelledby="hypotheses-title">
+          <div class="section-heading-row">
+            <h3 id="hypotheses-title">Live fault model</h3>
+            <span id="entropy-label">2.18 bits uncertainty</span>
+          </div>
+          <div id="hypothesis-list" class="hypothesis-list"></div>
+        </section>
+      </article>
+
+      <article class="panel action-panel" aria-label="Next repair action">
+        <header class="panel-header compact">
+          <div>
+            <p class="panel-kicker" id="action-kicker">Best next move</p>
+            <h2 id="action-heading">Preparing recommendation…</h2>
+          </div>
+          <span class="phase-badge" id="phase-badge">Diagnose</span>
+        </header>
+        <div id="action-content" class="action-content" aria-live="polite"></div>
+      </article>
+
+      <aside class="panel evidence-panel" aria-labelledby="evidence-title">
+        <header class="panel-header compact">
+          <div>
+            <p class="panel-kicker">Tamper-evident narrative</p>
+            <h2 id="evidence-title">Proof trail</h2>
+          </div>
+          <button class="mini-button" id="download-report" type="button">Export</button>
+        </header>
+        <div class="tool-pulse" id="tool-pulse" hidden>
+          <span class="pulse-orb" aria-hidden="true"></span>
+          <div><strong id="tool-pulse-name">Tool</strong><span id="tool-pulse-detail">Running</span></div>
+        </div>
+        <ol class="audit-list" id="audit-list"></ol>
+        <div class="proof-footer">
+          <span>Local-only</span><span>No account</span><span>No API key</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="judge-lane" id="judge-lane" aria-labelledby="judge-lane-title">
+      <div>
+        <p class="panel-kicker">60-second judge lane</p>
+        <h2 id="judge-lane-title">One prompt proves the collaboration boundary.</h2>
+      </div>
+      <blockquote id="golden-prompt">Diagnose this speaker using the safest most informative test. Show me exactly where to probe, record only the result I report, then stage the evidence-supported repair for my approval. Never claim you performed the physical work.</blockquote>
+      <button class="primary-button copy-button" id="copy-prompt" type="button">Copy prompt</button>
+    </section>
+
+    <footer class="footer">
+      <p><strong>ProbeLoop</strong> is a synthetic demonstration, not electrical-safety guidance or a repair certification.</p>
+      <p>Built for the OpenAI WebMCP Challenge · Fixture 2026.09.02</p>
+    </footer>
+  </main>
+
+  <dialog id="tools-dialog" class="modal tools-modal" aria-labelledby="tools-title">
+    <form method="dialog" class="modal-shell">
+      <header class="modal-header">
+        <div><p class="panel-kicker">Direct page capabilities</p><h2 id="tools-title">9 bounded site tools</h2></div>
+        <button class="icon-button close-dialog" value="close" aria-label="Close tool manifest" type="submit">×</button>
+      </header>
+      <p class="modal-lead">Four read tools, five visible state changes, and intentionally <strong>no repair-approval tool</strong>. The person keeps that decision.</p>
+      <div id="tool-manifest" class="tool-manifest"></div>
+    </form>
+  </dialog>
+
+  <dialog id="console-dialog" class="modal console-modal" aria-labelledby="console-title">
+    <div class="modal-shell">
+      <header class="modal-header">
+        <div><p class="panel-kicker">Works in any browser</p><h2 id="console-title">Agent tool rehearsal</h2></div>
+        <button class="icon-button close-console" aria-label="Close agent rehearsal" type="button">×</button>
+      </header>
+      <p class="modal-lead">This console calls the same validated handlers registered through WebMCP. It is a fallback for judges whose browser does not expose <code>document.modelContext</code>.</p>
+      <div class="console-layout">
+        <div>
+          <label class="field-label" for="console-tool">Tool</label>
+          <select id="console-tool"></select>
+          <label class="field-label" for="console-args">JSON arguments</label>
+          <textarea id="console-args" spellcheck="false"></textarea>
+          <button class="primary-button" id="run-console-tool" type="button">Execute as agent</button>
+        </div>
+        <div class="console-output-wrap">
+          <div class="console-output-head"><span>RESULT</span><span id="console-timing">ready</span></div>
+          <pre id="console-output">Select a tool. ProbeLoop will keep the visible bench and this result in sync.</pre>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+name: clean-repo-preflight
+
+on:
+  push:
+    branches: [probeloop-clean-repo-preflight]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PROBELOOP_LIVE_URL: http://127.0.0.1:4173/
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm run verify
+      - name: Install isolated browser verifier
+        run: npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.62.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start clean static origin
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/probeloop-server.log 2>&1 &
+          echo $! > /tmp/probeloop-server.pid
+          for attempt in {1..50}; do
+            curl --fail --silent http://127.0.0.1:4173/ >/dev/null && exit 0
+            sleep 0.2
+          done
+          cat /tmp/probeloop-server.log
+          exit 1
+      - name: Exercise registrations, human gates, and persistence
+        run: node scripts/remote_verify.mjs

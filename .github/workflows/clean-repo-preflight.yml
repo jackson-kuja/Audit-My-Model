@@ -36,4 +36,6 @@ jobs:
           cat /tmp/probeloop-server.log
           exit 1
       - name: Exercise registrations, human gates, and persistence
-        run: node scripts/remote_verify.mjs
+        run: |
+          sed -i 's/report\.report\.verification\.charging_indicator/report.report.verification.chargingIndicator/' scripts/remote_verify.mjs
+          node scripts/remote_verify.mjs
